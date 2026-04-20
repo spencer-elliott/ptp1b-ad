@@ -1,0 +1,69 @@
+~
+
+Practice working with RNA-seq data
+From Yuxin's paper: "PTP1B inhibition promotes microglial phagocytosis  in Alzheimer’s disease models by enhancing SYK signaling"
+
+~
+
+Goals: Understand/recreate the analysis from this paper, and maybe look for some new stuff too.
+
+Samples from 13-month old female mice:
+- APP/PS1-PTP1B+/+ (Alzheimer's model with WT PTP1B)
+- APP/PS1-PTP1B-/- (Alzheimer's model with PTP1B knockout)
+
+~
+
+Processing the raw data involves huge files and way more processing power than I have on my laptop.
+I'll start by downloading just one SRA run in fastq format:
+SRR36691286 (C57BL/6; APP/PS1; PTP1B-/-)
+I downloaded this using SRAtoolkit and compressed it into a gzip right away.
+
+Next I ran FastQC to check out the quality of our raw data. Looks good, there are some sections flagged in each report
+but looking at these they are not serious concerns. The sequences have a high quality score throughout.
+
+Conda environment for fastQC:
+conda create -n rnaseq fastqc sra-tools -c bioconda -c conda-forge
+conda activate rnaseq
+
+~
+
+kallisto bus
+
+Conda environment for kallisto bus:
+conda create -n kallisto_env -c conda-forge -c bioconda kallisto bustools
+conda activate kallisto_env
+
+~
+
+The actual analysis uses the CellRanger pipeline for alignment to reference genome and conversion to gene-barcode matrix.
+But I can't run this on my local machine, so I will skip ahead to work with the processed data.
+Try kallisto bus?
+
+~
+
+A plan:
+1. FastQC - Quality control, removes bad reads
+2. CellRanger pipeline - Aligns raw reads to reference genome, and converts to gene-barcode matrix
+3. Filtration, normalization, scaling, dimension reduction (PCA) - visualize data in 2D format
+4. Downstream analysis in R Studio - cell clustering, annotate cell types, compare cell types and identify marker genes
+    - Functional enrichment analysis - which pathways are enriched in which groups of cells?
+    - Change in expression based on developmental stages
+
+~
+
+Some links:
+
+SRA runs: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA1398868&o=acc_s%3Aa
+Supplementary methods info: file:///Users/spencerelliott/Downloads/pnas.2521944123.sapp.pdf
+
+~
+
+Environment tips (ChatGPT):
+fastqc_env → QC tools
+trim_env → trimming (e.g., Cutadapt, Trim Galore)
+kallisto_env → pseudoalignment + BUS
+star_env → alignment (STAR / STARsolo)
+scanpy_env → downstream analysis in Python
+seurat_env → downstream analysis in R
+
+~
