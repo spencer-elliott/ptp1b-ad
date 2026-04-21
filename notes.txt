@@ -33,6 +33,15 @@ Conda environment for kallisto bus:
 conda create -n kallisto_env -c conda-forge -c bioconda kallisto bustools
 conda activate kallisto_env
 
+I found the whitelist for the 10x genomics platform online:
+curl -O mereu2020/10xV3 wget https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-february-2018.txt.gz
+gunzip mereu2020/10xV3/3M-february-2018.txt.gz
+
+Generating transcripts to genes file:
+gunzip gencode.vM23.annotation.gtf.gz
+awk '$3 == "transcript"' gencode.vM23.annotation.gtf | \
+awk '{print $10"\t"$14}' | tr -d '";' > transcripts_to_genes.txt
+
 ~
 
 The actual analysis uses the CellRanger pipeline for alignment to reference genome and conversion to gene-barcode matrix.
