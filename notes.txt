@@ -13,10 +13,27 @@ Samples from 13-month old female mice:
 
 ~
 
+Going back to the beginning - what does RNA seq do?
+- Purpose: To quantify and identify RNA molecules in a biological sample.
+- Snapshot of the transcriptome - all RNA molecules = all genes being expressed.
+
+What is the initial data (FASTQ files)?
+- RNA is unstable - it is converted to a durable double-stranded form called complementary DNA (cDNA) to be read by the sequencer.
+    1. Long RNA molecules are broken apart (fragmentation)
+    2. Reverse transcriptase reads the RNA sequences and makes a complementary cDNA strand. A second strand of DNA is synthesized 
+       to make it double-stranded.
+    3. Adapter sequences are attached to the ends of cDNA. These have barcodes that allow you to tell samples apart later.
+    4. The cDNA library is copied using PCR.
+    5. A machine reads the cDNA fragments and this data is recorded as a FASTQ file.
+- So the output contains millions of short DNA sequences - now we need to figure out which gene/transcript each of these reads
+   came from.
+
+~
+
 Processing the raw data involves huge files and way more processing power than I have on my laptop.
 I'll start by downloading just one SRA run in fastq format:
 SRR36691286 (C57BL/6; APP/PS1; PTP1B-/-)
-I downloaded this using SRAtoolkit and compressed it into a gzip right away.
+I downloaded this using SRAtoolkit and compressed it into a gzip right away to save space.
 
 Next I ran FastQC to check out the quality of our raw data. Looks good, there are some sections flagged in each report
 but looking at these they are not serious concerns. The sequences have a high quality score throughout.
@@ -27,15 +44,36 @@ conda activate rnaseq
 
 ~
 
-kallisto bus
+What do we want to do with this raw data?
+- Figure out which gene/transcript each read comes from, so we can tell which genes are being expressed.
+- To do this we need to align the reads to a reference genome.
 
-Conda environment for kallisto bus:
+Kallisto takes each read and asks: "Which transcripts (mature mRNA molecules) could this have come from?"
+ - It does not provide the location in the genome like other types of alignment.
+Results in a quantified expression matrix.
+
+Pseudoalignment results in a BUS file where every molecule has a record:
+- Cell barcode - Which cell this molecule came from
+- Unique molecule identifier (UMI) - Unique tag to identify each molecule (clones from PCR amplification share this)
+- Transcript equivalence class - List of which transcripts it could belong to
+
+The BUS file is cleaned up and then processed into a gene x cell count matrix:
+- Rows are the different genes
+- Columns are the different cells
+- Values are the UMI counts
+So for each entry, you can see the number of unique molecules originating from a gene detected in a cell.
+
+Conda environment for Kallisto / bustools:
 conda create -n kallisto_env -c conda-forge -c bioconda kallisto bustools
 conda activate kallisto_env
 
 I found the whitelist for the 10x genomics platform online:
 curl -O mereu2020/10xV3 wget https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-february-2018.txt.gz
 gunzip mereu2020/10xV3/3M-february-2018.txt.gz
+
+Generating transcripts file:
+gunzip -c gencode.vM23.transcripts.fa.gz | grep "^>" | \
+  awk -F'|' '{print substr($1,2)}' > kallisto_output/transcripts.txt
 
 Generating transcripts to genes file:
 gunzip gencode.vM23.annotation.gtf.gz
@@ -46,7 +84,6 @@ awk '{print $10"\t"$14}' | tr -d '";' > transcripts_to_genes.txt
 
 The actual analysis uses the CellRanger pipeline for alignment to reference genome and conversion to gene-barcode matrix.
 But I can't run this on my local machine, so I will skip ahead to work with the processed data.
-Try kallisto bus?
 
 ~
 
