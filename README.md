@@ -1,26 +1,30 @@
 # RNA-Seq Pipeline
 
-This is my own practice playing around with data from single cell RNA-seq. This data is from a paper that Yuxin from my lab released last year:
+This is my own practice playing around with data from single cell RNA-seq. This data was in a paper that Yuxin from my lab released last year:
 
 *"PTP1B inhibition promotes microglial phagocytosis  in Alzheimer’s disease models by enhancing SYK signaling"* [link]
 
-My goal is to understand/recreate as much analysis as I can! And maybe check out some other cell populations, statistics as well. And try out some of the awesome tools that are used for this type of data.
+My goal is to understand and recreate as much analysis as I can! And maybe check out some other cell populations, statistics as well. It's a good chance to try out some awesome tools that are used on this type of data.
 
 ## Background
 
 *How does PTP1B inhibition affect microglial gene expression in APP/PS1 mice?*
 
-I wrote a summary of this reserch question that you can find in BACKGROUND.md. scRNA-seq was performed on the brains of two populations of APP/PS1 mice, a widely used transgenic model of Alzheimer's disease:
+I wrote a summary of this research question that you can find in BACKGROUND.md!
+
+This scRNA-seq data is from the brains of two groups of APP/PS1 mice, a widely used transgenic model for Alzheimer's disease:
 - APP/PS1-PTP1B+/+ (Alzheimer's model with WT PTP1B)
 - APP/PS1-PTP1B-/- (Alzheimer's model with PTP1B knockout)
 
-Each of these groups contains 4 mice, and each sample for RNA sequencing was pooled from 2 mice.
+Four mice were chosen from each experimental group. Each sample for RNA sequencing was pooled together from two mice, for a total of four samples.
 
-The main cell type we are investigating is the microglia, and the effects of PTP1B inhibition on microglial gene expression.
+## Pipeline
 
-## Methods
+1. 'ptp1b_download.sh' - Download raw FASTQ data using SRA Toolkit
+2. 'ptp1b_fastQC.sh' - Quality control using FastQC
+3. 'ptp1b_quantification.sh' - Pseudoalignment using kallisto/bustools
 
-You can see a full description of my thought process in METHODS.md.
+Alongside each of these scripts I'm going to create a companion Jupyter notebook that documents each choice I made, and what each of these commands is doing.
 
 ## Stuff I learned
 
