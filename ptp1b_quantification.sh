@@ -1,4 +1,5 @@
 #!/bin/bash
+# Activate before running: conda activate kallisto_env
 
 # Create an index for kallisto from the mouse reference transcriptome:
 kallisto index -i mm10.idx gencode.vM23.transcripts.fa.gz

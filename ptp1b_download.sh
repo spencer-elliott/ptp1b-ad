@@ -1,4 +1,5 @@
 #!/bin/bash
+# Activate before running: conda activate fastqc_env
 
 # Download SRA run using SRAtools
 fasterq-dump -e 1 -p SRR36691286
