@@ -68,8 +68,8 @@ conda create -n kallisto_env -c conda-forge -c bioconda kallisto bustools
 conda activate kallisto_env
 
 I found the whitelist for the 10x genomics platform online:
-curl -O mereu2020/10xV3 wget https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-february-2018.txt.gz
-gunzip mereu2020/10xV3/3M-february-2018.txt.gz
+curl -O https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-february-2018.txt.gz
+gunzip 3M-february-2018.txt.gz
 
 Generating transcripts file:
 gunzip -c gencode.vM23.transcripts.fa.gz | grep "^>" | \
