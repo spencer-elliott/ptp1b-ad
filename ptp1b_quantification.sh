@@ -1,6 +1,7 @@
 #!/bin/bash
 # Activate before running: conda activate kallisto_env
-# Downloads needed: Reference transcriptome and 10xv3 whitelist. See corresponding Jupyter notebook for instructions
+# Files needed: Reference transcriptome, 10xv3 whitelist, transcripts.txt and transcripts_to_genes.txt 
+#   See corresponding Jupyter notebook for instructions
 
 # Create an index for kallisto from the mouse reference transcriptome:
 kallisto index -i mm10.idx gencode.vM23.transcripts.fa.gz
@@ -13,17 +14,11 @@ bustools sort -t 4 -o kallisto_output/sorted.bus kallisto_output/output.bus
 
 # Fixing sequencing errors (needs whitelist)
 bustools correct -w 3M-february-2018.txt -o kallisto_output/corrected.bus kallisto_output/sorted.bus
+
 # Re-sorting after correction
 bustools sort -t 4 -o kallisto_output/corrected_sorted.bus kallisto_output/corrected.bus
 
 # Creating a gene expression matrix - gives us gene expression counts per cell
-bustools count \
-  -o kallisto_output/counts \
-  -g kallisto_output/transcripts_to_genes.txt \
-  -e kallisto_output/matrix.ec \
-  -t kallisto_output/transcripts.txt \
-  kallisto_output/corrected.bus
-
 bustools count \
   -o kallisto_output/counts \
   -g kallisto_output/transcripts_to_genes.txt \
