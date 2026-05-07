@@ -82,83 +82,143 @@ so <- CreateSeuratObject(counts = counts_filtered,
 # min.features: Drop any cell with less than 200 unique features
 ```
 
-I chose these numbers for filtering as a starting point (they are used in the walkthrough example on Seurat's website). There is also more quality control to look at before drawing any conclusions from this data.
+I chose these numbers for filtering as a starting point (they are used in the walkthrough example on Seurat's website). There is also more quality control to look at before drawing any big conclusions.
 
-### Including Mitochondrial Content
+### Filtering Low-Quality Cells
 
-We need to remove low-quality cells from this scRNA-seq data. Low-quality and dying cells can often be identified by their high mitochondrial content, so the first step is a new column tracking this value for each cell.
+We need to remove low-quality cells from this scRNA-seq data. There are a few common ways to filter out low-quality and dying cells, including:
 
-However, finding the mitochondrial genes is a little tricky because everything in the matrix is an Ensembl ID right now. Going back to the annotation file will make this easier:
+\- Low number of total UMIs.\
+- Low number of unique genes/features. \
+- High percentage of UMIs from mitochondrial genes. (Cytoplasmic RNA is lost first in dying cells, so mitochondria get overrepresented)
+
+The first two are built into the cell metadata that Seurat gives us as "nCount_RNA" and "nFeature_RNA," respectively:
+
+```{r}
+head(so@meta.data, 5)
+```
+
+For mitochondrial content, I will need to create a new column alongside these two others.
+
+Finding the mitochondrial genes is a little tricky because everything in the matrix is an Ensembl ID right now. I will have to go back to the annotation file and find out which ones are the mitochondrial genes.
 
 ```{r}
 gtf <- read.table("../gencode.vM23.annotation.gtf",
                   sep = "\t",
                   comment.char = "#",
                   header = FALSE)
+# sep = "\t": File is tab separated (gtf)
+# comment.char = "#": Lines beginning with # are comments
+# header = False: No header row in gtf file
 ```
 
-Mouse mitochondrial genes are on chromosome "chrM":
+Mouse mitochondrial genes are listed as being on chromosome "chrM" (column 'V1'), and genes are the type of feature that we are looking for (column 'V3'):
 
 ```{r}
 mt.gtf <- gtf[gtf$V1 == "chrM" & gtf$V3 == "gene", ]
+# gtf$V1 == "chrM": Mitochondrial chromosome
+# gtf$V3 == "gene": Feature type is "gene"
 ```
 
-Extract the attribute field, gene ID, and remove version numbers:
+Gene IDs are in the attribute field (column 'V9') alongside a bunch of other information that will need to be removed:
 
 ```{r}
 attr <- mt.gtf$V9
+head(attr)
+```
 
+I used AI to write a command with regex isolating the ID names we need:
+
+```{r}
+# Remove everything except the Ensembl ID
 mt.genes <- sub('.*gene_id "?([^";]+)"?.*', '\\1', attr)
-
+# Remove the version number
 mt.genes <- sub("\\..*", "", mt.genes)
 ```
 
-Now we can calculate mitochondrial percentage.
+With the list of mitochondrial Ensembl IDs, we can calculate the mitochondrial percentage for each barcode.
 
 ```{r}
 so[["percent.mt"]] <- PercentageFeatureSet(so, features = mt.genes)
 # so[["percent.mt"]]: Add a new column for mitochondrial percentage
 # PercentageFeatureSet(so, pattern = "^mt-"): For each barcode, calculate the percentage of genes starting with "mt-" (mitochondrial)
-```
 
-Summarizing this:
-
-```{r}
 summary(so$percent.mt)
 ```
 
-Let's inspect all the cell metadata:
+The summary looks like what we would expect! The mean is 3.7% mitochondrial genes.
+
+Let's inspect all the cell metadata with this new column added:
 
 ```{r}
 head(so@meta.data, 5)
 # @meta.data: Contains cell-level metadata like # of features and UMIs
 ```
 
-Let's extract some of this data about features and counts and percents, to create a violin plot for them.
+Finally, let's visualize the QC metrics with a violin plot:
 
 ```{r}
-# Not working?
-# VlnPlot(so, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(so, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
 
-library(tidyr)
-library(ggplot2)
+- nFeatureRNA: The bulk of the violin plot sits at \~500-3500 genes. The outliers towards the top are very likely doublets, where two cells were mistakenly counted as one.
 
-df <- FetchData(so, vars = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+- nCountRNA: Most barcodes sit at \<10000 UMIs.
 
-df_long <- pivot_longer(
-  df,
-  cols = c(nFeature_RNA, nCount_RNA, percent.mt),
-  names_to = "metric",
-  values_to = "value"
-)
+- percent.mt: The majority of cells are grouped up at \~5% mitochondrial content. A tail of outliers goes up as high as 50%.
 
-ggplot(df_long, aes(x = "", y = value)) +
-  geom_violin(fill = "grey80") +
-  facet_wrap(~metric, scales = "free_y", ncol = 3) +
-  theme_classic() +
-  theme(
-    axis.title.x = element_blank(),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank()
-  )
+To help choose cutoffs a FeatureScatter plot is also helpful. These plots show how the number of features and mitochondrial percentage differs based on UMI count:
+
+```{r}
+plot1 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "percent.mt")
+# Plot # of UMIs vs mitochondrial content
+
+plot2 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+# Plot # of UMIs vs # of features
+
+plot1 + plot2
+```
+
+- nCount_RNA vs percent.mt: Cells with the highest mitochondrial content also have the lowest UMI counts, a result typically expected from dead/dying cells.
+
+- nCount_RNA vs nFeature_RNA: There is 0.95 correlation between UMI count and gene count, which is pretty good! Points that are way to far above have way too many features and are doublet candidates.
+
+Based on these plots we can filter out the outliers and make this data better for analysis. The Seurat tutorial example uses the following numbers:
+
+- 200 \< nFeature_RNA \< 2500
+
+- percent.mt \< 5
+
+That data is made up of human cells with different results for the previous figures. Looking at my own plots, it looks like I can be a little more generous and include:
+
+- 200 \< nFeature_RNA \< 5000
+
+- percent.mt \< 15
+
+This will keep the main body of each plot while removing almost all doublets and dead cells. Time to apply these filters to the data:
+
+```{r}
+so <- subset(so, subset = nFeature_RNA > 200 &
+                           nFeature_RNA < 5000 &
+                           percent.mt < 15)
+```
+
+### Normalization
+
+Right now the data is still raw counts, so a cell with more total UMIs will likely look like it has more expression for each gene. We need to normalize the data so gene expression is given in proportion to total UMIs:
+
+```{r}
+so <- NormalizeData(so, normalization.method = "LogNormalize", scale.factor = 10000)
+# LogNormalize: Log transformation (common normalization method, makes exponential relationships linear)
+# scale.factor = 10000: Divide counts by total UMIs and multiply by 10000 before transforming.
+```
+
+### Identifying Highly Variable Features
+
+The Seurat tutorial recommends identifying genes with the highest cell-to-cell variation in expression, and focusing on them for downstream analysis. This removes noise from the genes that are expressed the same across all cells. I will follow their steps to create a subset of the 2000 most variable genes in this dataset:
+
+```{r}
+so <- FindVariableFeatures(so, selection.method = "vst", nfeatures = 2000)
+# selection.method = "vst": Variance stabilizing transformation (recommended method)
+# nfeatures = 2000: Find the 2000 most variable features
 ```
