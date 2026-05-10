@@ -29,7 +29,7 @@ counts <- readMM("counts.mtx")
 dim(counts)
 ```
 
-That represents 372,063 possible cell barcodes, and 55,335 genes/transcripts from the reference transcriptome (a high number because a ton of non-coding ones are included).
+That represents 372,063 possible cell barcodes, and 55,335 genes/transcripts from the reference transcriptome (a high number because this includes many noncoding).
 
 First of all this matrix needs to be transposed, Seurat expects rows to be features and columns to be cell barcodes:
 
@@ -65,13 +65,13 @@ summary(colSums(counts))
 # summary(): Computes some basic statistics (mean, median, min, max)
 ```
 
-The mean is 65.4, while the median is only 1! That means at least half the barcodes only have 1 UMI, which suggests empty droplets. To get rid of these data points, I will filter down to barcodes associated with at least 500 UMIs.
+The mean is 65.4 while the median is only 1! That means at least half the barcodes only have 1 UMI, a sign of empty droplets. To get rid of these data points, I will filter down to barcodes associated with at least 500 UMIs.
 
 ```{r}
 counts_filtered <- counts[, colSums(counts) >= 500]
 ```
 
-Now the matrix with raw counts can be turned into Seurat's special data structure, which can also contain the analysis that we will perform. This step also allows for a bit of additional filtering:
+Now the matrix with raw counts can be turned into Seurat's special data structure, which can store the analysis that I will perform. This step also allows for a bit of additional filtering:
 
 ```{r}
 so <- CreateSeuratObject(counts = counts_filtered,
@@ -89,7 +89,7 @@ I chose these numbers for filtering as a starting point (they are used in the wa
 We need to remove low-quality cells from this scRNA-seq data. There are a few common ways to filter out low-quality and dying cells, including:
 
 \- Low number of total UMIs.\
-- Low number of unique genes/features. \
+- Low number of unique genes/features.\
 - High percentage of UMIs from mitochondrial genes. (Cytoplasmic RNA is lost first in dying cells, so mitochondria get overrepresented)
 
 The first two are built into the cell metadata that Seurat gives us as "nCount_RNA" and "nFeature_RNA," respectively:
@@ -155,7 +155,7 @@ head(so@meta.data, 5)
 # @meta.data: Contains cell-level metadata like # of features and UMIs
 ```
 
-Finally, let's visualize the QC metrics with a violin plot:
+Finally, let's visualize each of these QC metrics with a violin plot:
 
 ```{r}
 VlnPlot(so, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
@@ -205,7 +205,7 @@ so <- subset(so, subset = nFeature_RNA > 200 &
 
 ### Normalization
 
-Right now the data is still raw counts, so a cell with more total UMIs will likely look like it has more expression for each gene. We need to normalize the data so gene expression is given in proportion to total UMIs:
+Right now the data is still raw counts, so a cell with more total UMIs will likely look like it has more expression for each gene. Data is commonly normalized so gene expression is given in proportion to total UMIs:
 
 ```{r}
 so <- NormalizeData(so, normalization.method = "LogNormalize", scale.factor = 10000)
@@ -213,7 +213,7 @@ so <- NormalizeData(so, normalization.method = "LogNormalize", scale.factor = 10
 # scale.factor = 10000: Divide counts by total UMIs and multiply by 10000 before transforming.
 ```
 
-### Identifying Highly Variable Features
+### Identifying Highly Variable Genes
 
 The Seurat tutorial recommends identifying genes with the highest cell-to-cell variation in expression, and focusing on them for downstream analysis. This removes noise from the genes that are expressed the same across all cells. I will follow their steps to create a subset of the 2000 most variable genes in this dataset:
 
@@ -222,3 +222,57 @@ so <- FindVariableFeatures(so, selection.method = "vst", nfeatures = 2000)
 # selection.method = "vst": Variance stabilizing transformation (recommended method)
 # nfeatures = 2000: Find the 2000 most variable features
 ```
+
+Now the Seurat object stores this list of variable features. Taking a look at the top 10 gives a list of Ensembl IDs that we can look up:
+
+```{r}
+top10 <- head(VariableFeatures(so), 10)
+top10
+```
+
+In order to tell what these genes are we need to use the annotation file once again, as a map. To start let's make a subset of all rows with the feature type we are looking for (gene):
+
+```{r}
+gene.gtf <- gtf[gtf$V3 == "gene",]
+# gtf$V3 == "gene": All rows with "gene" as feature type
+# Leave blank after the comma to keep all columns
+```
+
+The names and IDs of all these genes are found in the attributes column (column 9), and can be extracted with some more complicated regex commands. The version numbers also need to be removed from these Ensembl IDs as seen earlier.
+
+This information can build a new data frame "mapping" Ensembl IDs to the actual gene names:
+
+```{r}
+gene.ids   <- sub('.*gene_id "?([^";]+)"?.*',   '\\1', gene.gtf$V9)
+gene.ids <- sub("\\.\\d+$", "", gene.ids)
+
+gene.names <- sub('.*gene_name "?([^";]+)"?.*', '\\1', gene.gtf$V9)
+
+gene.map <- data.frame(ensembl_id = gene.ids,
+                       gene_name  = gene.names)
+```
+
+Now the list of top 10 variable genes can be identified:
+
+```{r}
+gene.map[gene.map$ensembl_id %in% top10, ]
+```
+
+Now is a good time to switch all these Ensembl IDs for the corresponding gene names, so all the downstream analysis will be much easier to interpret.
+
+```{r}
+
+```
+
+And plotted in a VariableFeaturePlot:
+
+```{r}
+# Creating a variable feature plot
+plot1 <- VariableFeaturePlot(so)
+
+# Labeling the top 10 variably expressed genes
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot2
+```
+
+In this plot the x-axis shows the average (normalized) expression of each gene, while the y-axis shows how much this expression varies across cells. The black dots on the bottom are deemed not variable while all genes above a certain threshold are called variable. The most variable genes are our top 10.
