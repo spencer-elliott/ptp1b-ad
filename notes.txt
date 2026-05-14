@@ -118,8 +118,8 @@ To-do (5/14):
 Today i redid the file structure and made it much more organized. But i need to go
 back and redo scripts/notebooks to account for these new directories:
 - ptp1b_download : UPDATED
-- ptp1b_fastQC : NOT FINISHED
-- ptp1b_quantification : NOT FINISHED
+- ptp1b_fastQC : UPDATED
+- ptp1b_quantification : UPDATED
 - ptp1b_seurat : NOT FINISHED
 
 ~
