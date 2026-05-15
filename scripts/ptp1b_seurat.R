@@ -2,10 +2,15 @@
 # Analyzing data with Seurat
 #
 
+# Setting the working directory to Kallisto output folder
+setwd("results/kallisto_output")
+
 # Loading packages
 library(Seurat)
 library(Matrix)
 library(dplyr)
+library(SingleR)
+library(celldex)
 
 # Reading in the raw matrix
 counts <- readMM("counts.mtx")

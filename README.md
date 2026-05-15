@@ -36,3 +36,4 @@ Alongside each of these steps I'm going to create a corresponding Jupyter notebo
 
 - Conda
 - Kallisto/bustools
+- Seurat
