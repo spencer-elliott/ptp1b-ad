@@ -1,5 +1,6 @@
 #
 # Analyzing data with Seurat
+# (One sample)
 #
 
 # Setting the working directory to Kallisto output folder

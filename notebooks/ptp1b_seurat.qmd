@@ -176,11 +176,11 @@ VlnPlot(so, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 To help choose cutoffs a FeatureScatter plot is also helpful. These plots show how the number of features and mitochondrial percentage differs based on UMI count:
 
 ```{r}
-plot1 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "percent.mt")
 # Plot # of UMIs vs mitochondrial content
+plot1 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "percent.mt")
 
-plot2 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 # Plot # of UMIs vs # of features
+plot2 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 
 plot1 + plot2
 ```

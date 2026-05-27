@@ -1,0 +1,170 @@
+---
+title: "ptp1b_seurat_final"
+format: html
+editor: visual
+---
+
+```{r setup}
+# Setting the working directory for R chunks
+knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results/cellranger_output")
+# Cache results so huge analysis doesn't have to be rerun
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+## Seurat Analysis for All Samples
+
+Running CellRanger resulted in a feature-barcode matrix for all four samples. Now I can bring this data into Seurat and perform the same QC and clustering analysis that I did for just one sample earlier. This will open the door to comparing expression in different cell types across the two treatment groups.
+
+For many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd!
+
+Once again this analysis will heavily follow by the Seurat tutorial found here: <https://satijalab.org/seurat/articles/pbmc3k_tutorial.html>
+
+### Creating the merged Seurat object
+
+Loading in the same packages as earlier:
+
+```{r}
+library(Seurat)
+library(Matrix)
+library(dplyr)
+```
+
+The first step is reading in the matrix. The .mtx file is found in a subfolder called "filtered_feature_bc_matrix" in the "outs" folder from each CellRanger run. This folder also conveniently contains lists of the barcodes and genes, named "barcodes.tsv: and "features.tsv" respectively.
+
+Seurat has a built-in command for reading in the matrix as these three files together. This will help me skip past steps I had to to before like replacing the Ensembl IDs with gene names!
+
+```{r}
+KO1 <- Read10X("KO_SRR36691286/filtered_feature_bc_matrix/")
+KO2 <- Read10X("KO_SRR36691287/filtered_feature_bc_matrix/")
+AD1 <- Read10X("AD_SRR36691288/filtered_feature_bc_matrix/")
+AD2 <- Read10X("AD_SRR36691288/filtered_feature_bc_matrix/")
+```
+
+Compared to my Kallisto output, this matrix has already been filtered for empty droplets as well. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I'll use separate project names for the two treatment groups to keep track of them after merging.
+
+```{r}
+KO1 <- CreateSeuratObject(counts = KO1, project = "KO", min.cells = 3, min.features = 200)
+KO2 <- CreateSeuratObject(counts = KO2, project = "KO", min.cells = 3, min.features = 200)
+AD1 <- CreateSeuratObject(counts = AD1, project = "AD", min.cells = 3, min.features = 200)
+AD2 <- CreateSeuratObject(counts = AD2, project = "AD", min.cells = 3, min.features = 200)
+
+so <- merge(KO1, y = list(KO2, AD1, AD2), 
+            add.cell.ids = c("KO1", "KO2", "AD1", "AD2"))
+```
+
+### Filtering Low-Quality Cells
+
+Once again Seurat provides "nCount_RNA" and "nFeature_RNA" for identifying the cells with dangerously low amounts of UMIs/features. Tracking mitochondrial percentage is also much easier this time, as CellRanger follows the naming convention where mouse mitochondrial genes start with "mt-"!
+
+```{r}
+so[["percent.mt"]] <- PercentageFeatureSet(so, pattern = "^mt-")
+```
+
+Looking at some metadata for QC, the percentages look around what we would expect:
+
+```{r}
+head(so@meta.data, 10)
+```
+
+I'll use a violin plot again to help decide cutoffs for these QC metrics:
+
+```{r}
+VlnPlot(so, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+```
+
+- nFeatureRNA: The bulk of the violin plot sits at \~500-5000 genes for the KO group, and more like \~500-6000 for AD. Once again there are some outliers towards the top that are most likely doublets.
+
+- nCountRNA: For the two groups, most barcodes sit at \<30000 UMIs.
+
+- percent.mt: The majority of cells are grouped up below 20% mitochondrial content. A tail of outliers goes up even as high as 80%! Those are almost certainly dying cells.
+
+Checking out some feature scatter plots will help as well:
+
+```{r}
+# Plot # of UMIs vs mitochondrial content
+plot1 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "percent.mt")
+
+# Plot # of UMIs vs # of features
+plot2 <- FeatureScatter(so, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+plot1 + plot2
+```
+
+- nCount_RNA vs percent.mt: Cells with the highest mitochondrial content also have the lowest UMI counts, a result typically expected from dead/dying cells.
+
+- nCount_RNA vs nFeature_RNA: A 0.94 correlation between UMI count and gene count. Points that are way to far above have way too many features and are doublet candidates.
+
+Based on these plots I'm going to go with these parameters for filtering, using upper and lower boundaries this time:
+
+- 500 \< nFeature_RNA \< 6000
+
+- 1000 \< nCount_RNA \< 30000
+
+- percent.mt \< 20
+
+Applying this to the data:
+
+```{r}
+so <- subset(so, subset = nFeature_RNA > 500 & 
+                       nFeature_RNA < 6000 & 
+                       nCount_RNA > 1000 &
+                       nCount_RNA < 30000 & 
+                       percent.mt < 20)
+```
+
+### Normalization
+
+Normalization prevents a cell with more total UMIs from looking like it has more expression for each gene. It is easily run with one command:
+
+```{r}
+so <- NormalizeData(so, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+
+### Identifying Highly Variable Genes
+
+The Seurat tutorial recommends identifying genes with the highest cell-to-cell variation in expression, and focusing on them for downstream analysis. This removes noise from the genes that are expressed the same across all cells. I will follow their steps to create a subset of the 2000 most variable genes in this dataset (already identified by name rather than Ensembl ID!), and take a quick look at the top 10:
+
+```{r}
+so <- FindVariableFeatures(so, selection.method = "vst", nfeatures = 2000)
+
+top10 <- head(VariableFeatures(so), 10)
+top10
+```
+
+Visualizing the genes as a variable feature plot with the top 10 most highly variable genes labeled:
+
+```{r}
+plot1 <- VariableFeaturePlot(so)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot2
+```
+
+### Scaling / PCA
+
+Once again, the data needs to be scaled before PCA. Scaling ensures that the principal components are not dominated by genes with a higher overall magnitude of expression.
+
+```{r}
+so <- ScaleData(so)
+```
+
+Now I can run the PCA on this list of variable features, and visualize the PCs with an elbow plot:
+
+```{r}
+so <- RunPCA(so)
+
+ElbowPlot(so)
+```
+
+Similar to my previous analysis, the curve really starts to flatten out around PC 15 or even a little earlier. I will include PCs 1-15 to keep the most meaningful variation. I'll use these PCs to cluster the cells:
+
+```{r}
+so <- FindNeighbors(so, dims = 1:15)
+so <- FindClusters(so, resolution = 0.5)
+```
+
+Now I can run UMAP to condense these PCs down to 2 dimensions, and make a readable map with the clusters.
+
+```{r}
+so <- RunUMAP(so, dims = 1:15)
+DimPlot(so, reduction = "umap", label = TRUE)
+```
