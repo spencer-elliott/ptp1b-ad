@@ -426,7 +426,7 @@ DimPlot(so, group.by = "SingleR.labels", reduction = "umap", label = TRUE)
 Now the clusters are labeled with cell type predictions. I can start checking out the expression of one gene in different cell types, like this:
 
 ```{r}
-FeaturePlot(so, features = "Ptpn1")
+FeaturePlot(so, features = "Ptpn1", label = TRUE)
 ```
 
 This is the first step to verifying these cell types! For example, cluster 12 was predicted to be neurons by SingleR. Looking at a canonical marker gene for neurons, Snap25:
