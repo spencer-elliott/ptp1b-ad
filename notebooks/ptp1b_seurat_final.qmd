@@ -6,7 +6,7 @@ editor: visual
 
 ```{r setup}
 # Setting the working directory for R chunks
-knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results/cellranger_output")
+knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results")
 # Cache results so huge analysis doesn't have to be rerun
 knitr::opts_chunk$set(cache = TRUE)
 ```
@@ -27,6 +27,7 @@ Loading in the same packages as earlier:
 library(Seurat)
 library(Matrix)
 library(dplyr)
+library(ggplot2)
 ```
 
 The first step is reading in the matrix. The .mtx file is found in a subfolder called "filtered_feature_bc_matrix" in the "outs" folder from each CellRanger run. This folder also conveniently contains lists of the barcodes and genes, named "barcodes.tsv: and "features.tsv" respectively.
@@ -34,10 +35,10 @@ The first step is reading in the matrix. The .mtx file is found in a subfolder c
 Seurat has a built-in command for reading in the matrix as these three files together. This will help me skip past steps I had to to before like replacing the Ensembl IDs with gene names!
 
 ```{r}
-KO1 <- Read10X("KO_SRR36691286/filtered_feature_bc_matrix/")
-KO2 <- Read10X("KO_SRR36691287/filtered_feature_bc_matrix/")
-AD1 <- Read10X("AD_SRR36691288/filtered_feature_bc_matrix/")
-AD2 <- Read10X("AD_SRR36691288/filtered_feature_bc_matrix/")
+KO1 <- Read10X("cellranger_output/KO_SRR36691286/filtered_feature_bc_matrix/")
+KO2 <- Read10X("cellranger_output/KO_SRR36691287/filtered_feature_bc_matrix/")
+AD1 <- Read10X("cellranger_output/AD_SRR36691288/filtered_feature_bc_matrix/")
+AD2 <- Read10X("cellranger_output/AD_SRR36691288/filtered_feature_bc_matrix/")
 ```
 
 Compared to my Kallisto output, this matrix has already been filtered for empty droplets as well. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I'll use separate project names for the two treatment groups to keep track of them after merging.
@@ -168,3 +169,205 @@ Now I can run UMAP to condense these PCs down to 2 dimensions, and make a readab
 so <- RunUMAP(so, dims = 1:15)
 DimPlot(so, reduction = "umap", label = TRUE)
 ```
+
+This looks pretty good with many distinct large clusters. The next step is to annotate each cluster with a cell type based on which marker genes it is expressing.
+
+### Assigning Identity to Clusters
+
+I'll try running an automatic annotation again with SingleR as a starting point. Loading packages and the reference dataset for mouse RNA-seq:
+
+```{r}
+library(SingleR)
+library(celldex)
+
+ref <- celldex::MouseRNAseqData()
+```
+
+Now I'll take the raw UMI counts from this Seurat object and pass them over to SingleR, which will create a vector with cell type predictions for each cluster:
+
+```{r}
+counts.singleR <- GetAssayData(so, layer = "counts")
+
+pred <- SingleR(test = counts.singleR, ref = ref, labels = ref$label.main)
+
+head(pred$labels, 10)
+```
+
+Adding these labels to the Seurat object, and using them to plot again:
+
+```{r}
+so$SingleR.labels <- pred$labels
+
+DimPlot(so, group.by = "SingleR.labels", reduction = "umap", label = TRUE)
+```
+
+These labels will give a first idea of what each of the clusters is representing. But the next step is a manual annotation based on canonical marker genes. Luckily, a list of marker genes to use can be found in Figure 4B of the supplemental information, a heatmap with marker genes that are overexpressed in each cluster!
+
+For example, I'll look at the marker genes from a cluster the paper identified as astrocytes. The heatmap shows this cluster overexpressing the marker genes Aqp4, Acsbg1, and Slc1a2.
+
+```{r}
+FeaturePlot(so, features = "Aqp4")
+FeaturePlot(so, features = "Acsbg1")
+FeaturePlot(so, features = "Slc1a2")
+```
+
+It looks like these marker genes are all clearly overexpressed in clusters 5, 17, 21, and 22. It will be fair to go ahead and label these clusters as my astrocytes.
+
+Now I can manually go through every gene from the heatmap and locate each of the same cell populations found in the paper's UMAP (Supplemental info Fig.4A). It is a pretty long process and many of the in-between clusters will be left to my own judgment.
+
+It's important to note that a lot of these genes are overexpressed in a certain cell type but also present elsewhere. For example the gene Ttr is a marker gene of epithelial cells (choroid plexus cells). Taking a look at its expression along with the other epithelial markers:
+
+```{r}
+FeaturePlot(so, features = "Ttr", label = TRUE)
+FeaturePlot(so, features = "Ecrg4", label = TRUE)
+FeaturePlot(so, features = "Enpp2", label = TRUE)
+```
+
+It is overexpressed in the cluster labeled as epithelial cells, where the other epithelial cell markers are also present. But it's also present in a few random places around the other cell types. This is normal and doesn't mean those are epithelial cells too.
+
+The ones that I'm really uncertain of, I will leave as "Unknown." When needed I'll use the automatic annotations as backup. With this in mind let's give it a try:
+
+```{r}
+# Astrocyte: Aqp4, Acsbg1, Slc1a2
+FeaturePlot(so, features = "Aqp4", label = TRUE)
+FeaturePlot(so, features = "Acsbg1", label = TRUE)
+FeaturePlot(so, features = "Slc1a2", label = TRUE)
+# Clusters: 5, 17, 22
+
+# Choroid plexus cell: Ttr, Ecrg4, Enpp2
+FeaturePlot(so, features = "Ttr", label = TRUE)
+FeaturePlot(so, features = "Ecrg4", label = TRUE)
+FeaturePlot(so, features = "Enpp2", label = TRUE)
+# Clusters: 0, 18
+
+# Endothelial cell: Flt1, Slco1a4, Mecom
+FeaturePlot(so, features = "Flt1", label = TRUE)
+FeaturePlot(so, features = "Slco1a4", label = TRUE)
+FeaturePlot(so, features = "Mecom", label = TRUE)
+# Clusters: 13
+
+# Macrophage: F13a1, H2-Aa, Lyve1
+FeaturePlot(so, features = "F13a1", label = TRUE)
+FeaturePlot(so, features = "H2-Aa", label = TRUE)
+FeaturePlot(so, features = "Lyve1", label = TRUE)
+# Clusters: 11, 20
+
+# Microglia: P2ry12, Hexb, Trem2
+FeaturePlot(so, features = "P2ry12", label = TRUE)
+FeaturePlot(so, features = "Hexb", label = TRUE)
+FeaturePlot(so, features = "Trem2", label = TRUE)
+# Clusters: 1, 4, 8, 14, 19
+
+# Neuron: Syt1, Snap25, Nrn1
+FeaturePlot(so, features = "Syt1", label = TRUE)
+FeaturePlot(so, features = "Snap25", label = TRUE)
+FeaturePlot(so, features = "Nrn1", label = TRUE)
+# Clusters: 10
+
+# Oligodendrocyte: Ermn, Mog, Aspa
+FeaturePlot(so, features = "Ermn", label = TRUE)
+FeaturePlot(so, features = "Mog", label = TRUE)
+FeaturePlot(so, features = "Aspa", label = TRUE)
+# Clusters: 2, 3, 6, 12, 15, 21, 26
+
+# OPC: Pdgfra, Cacng4, Vcan
+FeaturePlot(so, features = "Pdgfra", label = TRUE)
+FeaturePlot(so, features = "Cacng4", label = TRUE)
+FeaturePlot(so, features = "Vcan", label = TRUE)
+# Clusters: 9
+
+# T cell: Cd3d, Cd3e, Cd3g
+FeaturePlot(so, features = "Cd3d", label = TRUE)
+FeaturePlot(so, features = "Cd3e", label = TRUE)
+FeaturePlot(so, features = "Cd3g", label = TRUE)
+# Clusters: 7, 23, 24, 25
+
+# Cluster 16 - Nothing manual - SingleR says fibroblasts? Not mentioned in paper, drop?
+```
+
+Now I'll create a vector of these manual cluster annotations:
+
+```{r}
+cluster_annotations <- c(
+  "0" = "Choroid plexus cell",
+  "1" = "Microglia",
+  "2" = "Oligodendrocyte",
+  "3" = "Oligodendrocyte",
+  "4" = "Microglia",
+  "5" = "Astrocyte",
+  "6" = "Oligodendrocyte",
+  "7" = "T cell",
+  "8" = "Microglia",
+  "9" = "OPC",
+  "10" = "Neuron",
+  "11" = "Macrophage",
+  "12" = "Oligodendrocyte",
+  "13" = "Endothelial cell",
+  "14" = "Microglia",
+  "15" = "Oligodendrocyte",
+  "16" = "Fibroblast",
+  "17" = "Astrocyte",
+  "18" = "Choroid plexus cell",
+  "19" = "Microglia",
+  "20" = "Macrophage",
+  "21" = "Oligodendrocyte",
+  "22" = "Astrocyte",
+  "23" = "T cell",
+  "24" = "T cell",
+  "25" = "T cell",
+  "26" = "Oligodendrocyte"
+)
+```
+
+Time to plot with these new cell types, and save the plot as a file:
+
+```{r}
+# Creating a column with the identity of each cell under manual annotations
+so@meta.data$cell_type <- cluster_annotations[as.character(so$seurat_clusters)]
+# so@meta.data$cell_type <-: Create a new column in Seurat metadata called cell_type
+# as.character(so$seurat_clusters): Get cluster number for each cell
+# cluster_annotations[]: Match each cluster number with its label in the new vector
+
+# Use cell_type as the new identity
+Idents(so) <- "cell_type"
+# Idents(): Where cell idenities are stored in the Seurat object
+
+# Plot UMAP with new labels
+DimPlot(so, reduction = "umap", label = TRUE)
+# Save as a pdf
+ggsave("analysis/umap_annotated.pdf", width = 8, height = 6)
+```
+
+Now I can compare the expression of one gene across treatment groups, and see what populations it is in! This is the start of recreating the paper's RNA-seq analysis.
+
+## Ptpn1 Expression in Microglia
+
+From the paper:
+
+> *"After quality control and filtering, a total of 31,740 cells across two genotypes were arranged by uniform manifold approximation and projection (UMAP) for visualization."*
+
+Double checking how many cells I have been using:
+
+```{r}
+ncol(so)
+```
+
+Pretty close, maybe their filters are a little more strict. Maybe they also got rid of some of the trickier clusters, like that fibroblasts one. Let's continue:
+
+> *"Clusters were then manually annotated as astrocytes, choroid plexus cells, endothelial cells, macrophages, microglia, neurons, oligodendrocytes, OPCs, and T cells, based on the expression of cell type–specific signature genes."*
+
+That's what I did in the last step! Next:
+
+> *"Then, we investigated the expression level of PTP1B across all cell types in the brain. Interestingly, Ptpn1, the gene that encodes PTP1B, was found to be highly expressed in immune cells, including microglia, macrophages, and T cells (Fig. 3B), suggesting a potential role in brain immune regulation."*
+
+Time to see where Ptpn1 is expressed in my samples. It had better be different between the two treatment groups because it's knocked out. But let's also see which cell types:
+
+```{r}
+FeaturePlot(so, features = "Ptpn1", split.by = "orig.ident", label = TRUE)
+```
+
+Can see the knockout very clearly, looks good! And it is more expressed in microglia!
+
+## Microglia Analysis
+
+Since this is an Alzheimer's disease paper, the main focus is the microglia. For further analysis they split the microglia into several subtypes and checked out the differences in gene expression there.

@@ -205,6 +205,8 @@ so <- subset(so, cell_type != "Unknown")
 DimPlot(so, reduction = "umap", label = TRUE)
 
 
+# Measuring Ptpn1 expression in different cell types, across treatment groups
+FeaturePlot(so, features = "Ptpn1", split.by = "orig.ident", label = TRUE)
 
 
 
