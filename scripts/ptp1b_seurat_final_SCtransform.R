@@ -1,4 +1,8 @@
 #
+# Ptp1b seurat with SCTransform
+#
+
+#
 # Analyzing data with Seurat
 # All four samples
 #
@@ -15,6 +19,8 @@ library(Seurat)
 library(Matrix)
 library(dplyr)
 library(ggplot2)
+library(harmony)
+
 
 # Read in the raw matrices
 KO1 <- Read10X("KO_SRR36691286/filtered_feature_bc_matrix/")
@@ -49,45 +55,35 @@ plot1 + plot2
 
 # Filtering the low quality cells
 so <- subset(so, subset = nFeature_RNA > 500 & 
-                       nFeature_RNA < 6000 & 
-                       nCount_RNA > 1000 &
-                       nCount_RNA < 30000 & 
-                       percent.mt < 20)
+               nFeature_RNA < 6000 & 
+               nCount_RNA > 1000 &
+               nCount_RNA < 30000 & 
+               percent.mt < 20)
 
-# Normalization
-so <- NormalizeData(so)
 
-# Finding the 2000 most variable features
-so <- FindVariableFeatures(so, selection.method = "vst", nfeatures = 2000)
-# Finding the top 10 variable features
-top10 <- head(VariableFeatures(so), 10)
-
-# Plotting the variable features with top 10 labeled
-plot1 <- VariableFeaturePlot(so)
-plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-plot2
-
-# Scaling the data
-so <- ScaleData(so)
-
-# Running the PCA
+so <- SCTransform(so, vars.to.regress = "percent.mt")
 so <- RunPCA(so)
+so <- RunHarmony(so, group.by.vars = "orig.ident", assay.use = "SCT")
+
 
 # Visualizing the PCs with an elbow plot
 ElbowPlot(so)
 
 # Clustering the cells
-so <- FindNeighbors(so, dims = 1:15)
-so <- FindClusters(so, resolution = 0.5)
+so <- FindNeighbors(so, dims = 1:30, reduction = "harmony")
+so <- FindClusters(so, resolution = 0.3)
 
 # Condensing all the PCs down to 2 dimensions
-so <- RunUMAP(so, dims = 1:15)
+so <- RunUMAP(so, dims = 1:30, reduction = "harmony")
 
 # Visualizing the clusters with a dimensional reduction plot
 DimPlot(so, reduction = "umap", label = TRUE)
 
 # Visualizing expression of one gene with a feature plot
 FeaturePlot(so, features = "Ptpn1")
+
+
+# Remove? #
 
 # Identifying the marker genes (must join layers first)
 so <- JoinLayers(so)
@@ -123,6 +119,8 @@ DimPlot(so, group.by = "SingleR.labels", reduction = "umap", label = TRUE)
 FeaturePlot(so, features = "Ptpn1", split.by = "orig.ident")
 FeaturePlot(so, features = "Syk", split.by = "orig.ident")
 
+# Remove? #
+
 
 # Using the same marker genes as the supplemental info to identify cell types
 # (Fig.S4B)
@@ -131,87 +129,82 @@ FeaturePlot(so, features = "Syk", split.by = "orig.ident")
 FeaturePlot(so, features = "Aqp4", label = TRUE)
 FeaturePlot(so, features = "Acsbg1", label = TRUE)
 FeaturePlot(so, features = "Slc1a2", label = TRUE)
-# Clusters: 5, 17, 22
+# Clusters: 3
 
 # Choroid plexus cell: Ttr, Ecrg4, Enpp2
 FeaturePlot(so, features = "Ttr", label = TRUE)
 FeaturePlot(so, features = "Ecrg4", label = TRUE)
 FeaturePlot(so, features = "Enpp2", label = TRUE)
-# Clusters: 0, 18
+# Clusters: 2, 4, 10, 14, 17, 19
 
 # Endothelial cell: Flt1, Slco1a4, Mecom
 FeaturePlot(so, features = "Flt1", label = TRUE)
 FeaturePlot(so, features = "Slco1a4", label = TRUE)
 FeaturePlot(so, features = "Mecom", label = TRUE)
-# Clusters: 13
+# Clusters: 15
 
 # Macrophage: F13a1, H2-Aa, Lyve1
 FeaturePlot(so, features = "F13a1", label = TRUE)
 FeaturePlot(so, features = "H2-Aa", label = TRUE)
 FeaturePlot(so, features = "Lyve1", label = TRUE)
-# Clusters: 11, 20
+# Clusters: 13
 
 # Microglia: P2ry12, Hexb, Trem2
 FeaturePlot(so, features = "P2ry12", label = TRUE)
 FeaturePlot(so, features = "Hexb", label = TRUE)
 FeaturePlot(so, features = "Trem2", label = TRUE)
-# Clusters: 1, 4, 8, 14, 19
+# Clusters: 1, 5, 8, 16
 
 # Neuron: Syt1, Snap25, Nrn1
 FeaturePlot(so, features = "Syt1", label = TRUE)
 FeaturePlot(so, features = "Snap25", label = TRUE)
 FeaturePlot(so, features = "Nrn1", label = TRUE)
-# Clusters: 10
+# Clusters: 12
 
 # Oligodendrocyte: Ermn, Mog, Aspa
 FeaturePlot(so, features = "Ermn", label = TRUE)
 FeaturePlot(so, features = "Mog", label = TRUE)
 FeaturePlot(so, features = "Aspa", label = TRUE)
-# Clusters: 2, 3, 6, 12, 15, 21, 26
+# Clusters: 0, 6, 9, 18
 
 # OPC: Pdgfra, Cacng4, Vcan
 FeaturePlot(so, features = "Pdgfra", label = TRUE)
 FeaturePlot(so, features = "Cacng4", label = TRUE)
 FeaturePlot(so, features = "Vcan", label = TRUE)
-# Clusters: 9
+# Clusters: 11, 22
 
 # T cell: Cd3d, Cd3e, Cd3g
 FeaturePlot(so, features = "Cd3d", label = TRUE)
 FeaturePlot(so, features = "Cd3e", label = TRUE)
 FeaturePlot(so, features = "Cd3g", label = TRUE)
-# Clusters: 7, 23, 24, 25
+# Clusters: 7
 
-# Cluster 16 - Nothing manual - SingleR says fibroblasts? Not mentioned in paper, drop?
 
 # Cluster annotations based on these results
 cluster_annotations <- c(
-  "0" = "Choroid plexus cell",
+  "0" = "Oligodendrocyte",
   "1" = "Microglia",
-  "2" = "Oligodendrocyte",
-  "3" = "Oligodendrocyte",
-  "4" = "Microglia",
-  "5" = "Astrocyte",
+  "2" = "Choroid plexus cell",
+  "3" = "Astrocyte",
+  "4" = "Choroid plexus cell",
+  "5" = "Microglia",
   "6" = "Oligodendrocyte",
   "7" = "T cell",
   "8" = "Microglia",
-  "9" = "OPC",
-  "10" = "Neuron",
-  "11" = "Macrophage",
-  "12" = "Oligodendrocyte",
-  "13" = "Endothelial cell",
-  "14" = "Microglia",
-  "15" = "Oligodendrocyte",
-  "16" = "Fibroblast",
-  "17" = "Astrocyte",
-  "18" = "Choroid plexus cell",
-  "19" = "Microglia",
-  "20" = "Macrophage",
-  "21" = "Oligodendrocyte",
-  "22" = "Astrocyte",
-  "23" = "T cell",
-  "24" = "T cell",
-  "25" = "T cell",
-  "26" = "Oligodendrocyte"
+  "9" = "Oligodendrocyte",
+  "10" = "Choroid plexus cell",
+  "11" = "OPC",
+  "12" = "Neuron",
+  "13" = "Macrophage",
+  "14" = "Choroid plexus cell",
+  "15" = "Endothelial cell",
+  "16" = "Microglia",
+  "17" = "Choroid plexus cell",
+  "18" = "Oligodendrocyte",
+  "19" = "Choroid plexus cell",
+  "20" = "Unknown",
+  "21" = "Unknown",
+  "22" = "OPC"
 )
 so@meta.data$cell_type <- cluster_annotations[as.character(so$seurat_clusters)]
 Idents(so) <- "cell_type"
@@ -259,37 +252,45 @@ microglia <- subset(so, idents = "Microglia")
 
 
 # Redoing the analysis on this group
-microglia <- NormalizeData(microglia)
+microglia <- SCTransform(microglia, vars.to.regress = "percent.mt")
 
-microglia <- FindVariableFeatures(microglia)
-top10_microglia <- head(VariableFeatures(microglia), 10)
-plot1 <- VariableFeaturePlot(microglia)
-plot2 <- LabelPoints(plot = plot1, points = top10_microglia, repel = TRUE)
-plot2
+microglia <- RunPCA(microglia, assay = "SCT")
 
-microglia <- ScaleData(microglia)
-
-microglia <- RunPCA(microglia)
+microglia <- RunHarmony(microglia, group.by.vars = "orig.ident", assay.use = "SCT")
 
 ElbowPlot(microglia)
 
-microglia <- FindNeighbors(microglia, dims = 1:10)
+microglia <- FindNeighbors(microglia, dims = 1:10, reduction = "harmony")
 
 # Lower resolution needed this time
 microglia <- FindClusters(microglia, resolution = 0.1)
 
-microglia <- RunUMAP(microglia, dims = 1:10)
+microglia <- RunUMAP(microglia, dims = 1:10, reduction = "harmony")
 
 DimPlot(microglia, reduction = "umap", label = TRUE)
 DimPlot(microglia, reduction = "umap", label = TRUE, split.by = "orig.ident")
+
+
+## DID 2x
 
 # Removing the incorrect clusters
 microglia <- subset(microglia, idents = c("0", "1", "2"))
 # Removing massive outlier cells
 microglia <- subset(microglia, subset = umap_1 > -10)
 
+# Rerunning after subsetting
+microglia <- SCTransform(microglia, vars.to.regress = "percent.mt")
+microglia <- RunPCA(microglia, assay = "SCT")
+microglia <- RunHarmony(microglia, group.by.vars = "orig.ident", assay.use = "SCT")
+microglia <- FindNeighbors(microglia, dims = 1:10, reduction = "harmony")
+microglia <- FindClusters(microglia, resolution = 0.1)
+microglia <- RunUMAP(microglia, dims = 1:10, reduction = "harmony")
+DimPlot(microglia, reduction = "umap", label = TRUE)
+
 # Re-plotting
 DimPlot(microglia, reduction = "umap", label = TRUE)
+
+## DID 2x
 
 
 # Identifying the microglia subclusters with marker genes
@@ -298,23 +299,26 @@ DimPlot(microglia, reduction = "umap", label = TRUE)
 FeaturePlot(microglia, features = "Fcrls", label = TRUE)
 FeaturePlot(microglia, features = "Tmem119", label = TRUE)
 FeaturePlot(microglia, features = "P2ry12", label = TRUE)
-# Cluster 1
+# Cluster 0
 
 # Disease-associated microglia: Axl, Ctsl, Trem2
 FeaturePlot(microglia, features = "Axl", label = TRUE)
 FeaturePlot(microglia, features = "Ctsl", label = TRUE)
 FeaturePlot(microglia, features = "Trem2", label = TRUE)
-# Cluster 2
+# Cluster 1
 
 # Interferon-responsive microglia: Oasl2, Stat1, and Irf7
 FeaturePlot(microglia, features = "Oasl2", label = TRUE)
 FeaturePlot(microglia, features = "Stat1", label = TRUE)
 FeaturePlot(microglia, features = "Irf7", label = TRUE)
-# Cluster 0
+# Cluster 2
 
 # Cluster annotations based on these results
 microglia_annotations <- c(
-  "0" = "IFN",
-  "1" = "Homeostatic",
-  "2" = "DAM"
+  "0" = "Homeostatic",
+  "1" = "DAM",
+  "2" = "IFN"
 )
+microglia@meta.data$cell_type <- microglia_annotations[as.character(microglia$seurat_clusters)]
+Idents(microglia) <- "cell_type"
+DimPlot(microglia, reduction = "umap", label = TRUE)
