@@ -414,7 +414,7 @@ It looks very similar to the actual results! Microglia and macrophage have the h
 
 The microglia are the brain's primary immune cells, they play the most crucial role in Alzheimer's disease and are the focus of this paper. To continue the analysis they split the microglia into several subtypes and checked out the differences in gene expression there.
 
-To follow in these footsteps, I'll create a subset of the data containing only the cells that were annotated as microglia, and then redo the analysis from above.
+To follow in these footsteps, I'll create a subset of the data containing only cells that were annotated as microglia, and then redo the analysis from above.
 
 ```{r}
 # New subset of microglia
@@ -437,7 +437,7 @@ ElbowPlot(microglia)
 
 ```
 
-Small intermission - looks like 10 PCs is best for the elbow plot this time.
+Small intermission here - it looks like 10 PCs is best for the elbow plot this time.
 
 ```{r}
 # Clustering the cells
@@ -451,7 +451,7 @@ microglia <- RunUMAP(microglia, dims = 1:10)
 DimPlot(microglia, reduction = "umap", label = TRUE)
 ```
 
-Compared to the actual result there is way too much going on here. Since this is a smaller population of cells, it makes sense to try a lower resolution for creating the clusters.
+Compared to the actual result there is way too much going on in this plot. Since this is a smaller population of cells, it makes sense to try a lower resolution for creating the clusters.
 
 ```{r}
 # Clustering the cells - lower resolution

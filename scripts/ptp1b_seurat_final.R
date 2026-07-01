@@ -276,7 +276,7 @@ ElbowPlot(microglia)
 microglia <- FindNeighbors(microglia, dims = 1:10)
 
 # Lower resolution needed this time
-microglia <- FindClusters(microglia, resolution = 0.1)
+microglia <- FindClusters(microglia, resolution = 0.2)
 
 microglia <- RunUMAP(microglia, dims = 1:10)
 
@@ -318,3 +318,6 @@ microglia_annotations <- c(
   "1" = "Homeostatic",
   "2" = "DAM"
 )
+microglia@meta.data$cell_type <- microglia_annotations[as.character(microglia$seurat_clusters)]
+Idents(microglia) <- "cell_type"
+DimPlot(microglia, reduction = "umap", label = TRUE)
