@@ -6,20 +6,22 @@ editor: visual
 
 ```{r setup}
 # Setting the working directory for R chunks
-knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results")
-```
-
-```{r}
-.Random.seed <- readRDS("original_seed.rds")
+knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results/cellbender_output")
+# Setting the random seed to replicate results
+seed <- readRDS("~/ptp1b_ad/results/original_seed.rds")
+assign(".Random.seed", seed, envir = .GlobalEnv)
+# Cache results so huge analysis doesn't have to be rerun
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
 ## Seurat Analysis for All Samples
 
-Running CellRanger resulted in a feature-barcode matrix for all four samples. Now I can bring this data into Seurat and perform the same QC and clustering analysis that I did for just one sample earlier. This will open the door to comparing expression in different cell types across the two treatment groups.
+Running CellRanger resulted in a feature-barcode matrix for all four samples, and CellBender cleaned up these results extensively. Now I can bring my data into Seurat and perform QC and clustering analysis, like I did for just one sample earlier. I'm also going to do some more detailed preprocessing, incorporating other tools that were used on this data in the paper.
 
-For many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd!
+This will open the door to comparing expression in different cell types across the two treatment groups!
 
-Once again this analysis will heavily follow by the Seurat tutorial found here: <https://satijalab.org/seurat/articles/pbmc3k_tutorial.html>
+Once again this analysis will heavily follow the Seurat tutorial found here: <https://satijalab.org/seurat/articles/pbmc3k_tutorial.html>\
+Also remember that for many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd!
 
 ### Creating the merged Seurat object
 
@@ -32,18 +34,18 @@ library(dplyr)
 library(ggplot2)
 ```
 
-The first step is reading in the matrix. The .mtx file is found in a subfolder called "filtered_feature_bc_matrix" in the "outs" folder from each CellRanger run. This folder also conveniently contains lists of the barcodes and genes, named "barcodes.tsv: and "features.tsv" respectively.
+The first step is reading in the matrix. CellBender outputs the filtered matrices in a .h5 format that can be read in with Read10X_h5. This also contains all the other needed info, like lists of barcodes and features, that I needed to bring in separately before.
 
 Seurat has a built-in command for reading in the matrix as these three files together. This will help me skip past steps I had to to before like replacing the Ensembl IDs with gene names!
 
 ```{r}
-KO1 <- Read10X("cellranger_output/KO_SRR36691286/filtered_feature_bc_matrix/")
-KO2 <- Read10X("cellranger_output/KO_SRR36691287/filtered_feature_bc_matrix/")
-AD1 <- Read10X("cellranger_output/AD_SRR36691288/filtered_feature_bc_matrix/")
-AD2 <- Read10X("cellranger_output/AD_SRR36691288/filtered_feature_bc_matrix/")
+KO1 <- Read10X_h5("KO_SRR36691286_cellbender_filtered_seurat.h5")
+KO2 <- Read10X_h5("KO_SRR36691287_cellbender_filtered_seurat.h5")
+AD1 <- Read10X_h5("AD_SRR36691288_cellbender_filtered_seurat.h5")
+AD2 <- Read10X_h5("AD_SRR36691289_cellbender_filtered_seurat.h5")
 ```
 
-Compared to my Kallisto output, this matrix has already been filtered for empty droplets as well. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I'll use separate project names for the two treatment groups to keep track of them after merging.
+Compared to my Kallisto output, this matrix is also already filtered for empty droplets thanks to CellRanger and CellBender. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I'll use separate project names for the two treatment groups to keep track of them after merging.
 
 ```{r}
 KO1 <- CreateSeuratObject(counts = KO1, project = "KO", min.cells = 3, min.features = 200)
@@ -97,13 +99,13 @@ plot1 + plot2
 
 - nCount_RNA vs nFeature_RNA: A 0.94 correlation between UMI count and gene count. Points that are way to far above have way too many features and are doublet candidates.
 
-Based on these plots I'm going to go with these parameters for filtering, using upper and lower boundaries this time:
+Since it seems to line up with what I'm seeing, I'm going to use the same filters that were used in the paper for this step:
 
 - 500 \< nFeature_RNA \< 6000
 
 - 1000 \< nCount_RNA \< 30000
 
-- percent.mt \< 20
+- percent.mt \< 10
 
 Applying this to the data:
 
@@ -115,64 +117,47 @@ so <- subset(so, subset = nFeature_RNA > 500 &
                        percent.mt < 20)
 ```
 
-### Normalization
+### Normalization, Variable Genes, and Scaling
 
-Normalization prevents a cell with more total UMIs from looking like it has more expression for each gene. It is easily run with one command:
-
-```{r}
-so <- NormalizeData(so, normalization.method = "LogNormalize", scale.factor = 10000)
-```
-
-### Identifying Highly Variable Genes
-
-The Seurat tutorial recommends identifying genes with the highest cell-to-cell variation in expression, and focusing on them for downstream analysis. This removes noise from the genes that are expressed the same across all cells. I will follow their steps to create a subset of the 2000 most variable genes in this dataset (already identified by name rather than Ensembl ID!), and take a quick look at the top 10:
+Continuing to follow the paper I'm going to use SCTransform this time, a tool that's included in the Seurat package. This performs normalization, identifies variable features, and scales the data in one easy step!
 
 ```{r}
-so <- FindVariableFeatures(so, selection.method = "vst", nfeatures = 2000)
-
-top10 <- head(VariableFeatures(so), 10)
-top10
+so <- SCTransform(so, vars.to.regress = "percent.mt")
 ```
 
-Visualizing the genes as a variable feature plot with the top 10 most highly variable genes labeled:
+### PCA and Batch Correction
 
-```{r}
-plot1 <- VariableFeaturePlot(so)
-plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-plot2
-```
-
-### Scaling / PCA
-
-Once again, the data needs to be scaled before PCA. Scaling ensures that the principal components are not dominated by genes with a higher overall magnitude of expression.
-
-```{r}
-so <- ScaleData(so)
-```
-
-Now I can run the PCA on this list of variable features, and visualize the PCs with an elbow plot:
+Now I can run the PCA on this list of variable features:
 
 ```{r}
 so <- RunPCA(so)
+```
+
+One more step from the real analysis that I'm gonna insert here is batch correction with a tool called Harmony. This prevents separation in the PCs from technical errors or differences between the samples, and makes sure that the clustering is purely based on cell type. Running this and then checking out the elbow plot of PCs:
+
+```{r}
+library(harmony)
+
+so <- RunHarmony(so, group.by.vars = "orig.ident", assay.use = "SCT")
 
 ElbowPlot(so)
 ```
 
-Similar to my previous analysis, the curve really starts to flatten out around PC 15 or even a little earlier. I will include PCs 1-15 to keep the most meaningful variation. I'll use these PCs to cluster the cells:
+Similar to my previous analysis, the curve really starts to flatten out around PC 15 or even a little earlier. However I'm going to stick with the paper where they keep PCs 1-30.
 
 ```{r}
-so <- FindNeighbors(so, dims = 1:15)
-so <- FindClusters(so, resolution = 0.5)
+so <- FindNeighbors(so, dims = 1:30, reduction = "harmony")
+so <- FindClusters(so, resolution = 0.15)
 ```
 
 Now I can run UMAP to condense these PCs down to 2 dimensions, and make a readable map with the clusters.
 
 ```{r}
-so <- RunUMAP(so, dims = 1:15)
+so <- RunUMAP(so, dims = 1:30, reduction = "harmony")
 DimPlot(so, reduction = "umap", label = TRUE)
 ```
 
-This looks pretty good with many distinct large clusters. The next step is to annotate each cluster with a cell type based on which marker genes it is expressing.
+This looks pretty good again, with many distinct clusters to check out. The next step is annotating each cluster with a cell type based on which marker genes it is expressing.
 
 ### Assigning Identity to Clusters
 
@@ -188,12 +173,12 @@ ref <- celldex::MouseRNAseqData()
 Now I'll take the raw UMI counts from this Seurat object and pass them over to SingleR, which will create a vector with cell type predictions for each cluster:
 
 ```{r}
-so <- JoinLayers(so)
 counts.singleR <- GetAssayData(so, layer = "counts")
 
 pred <- SingleR(test = counts.singleR, ref = ref, labels = ref$label.main)
 
 head(pred$labels, 10)
+
 ```
 
 Adding these labels to the Seurat object, and using them to plot again:
@@ -217,7 +202,7 @@ FeaturePlot(so, features = "Acsbg1")
 FeaturePlot(so, features = "Slc1a2")
 ```
 
-It looks like these marker genes are all clearly overexpressed in clusters 5, 17, 21, and 22. It will be fair to go ahead and label these clusters as my astrocytes.
+It looks like these marker genes are all clearly overexpressed in cluster 3. It will be fair to go ahead and label this clusters as my astrocytes.
 
 Now I can manually go through every gene from the heatmap and locate each of the same cell populations found in the paper's UMAP (Supplemental info Fig.4A). It is a pretty long process and many of the in-between clusters will be left to my own judgment.
 
@@ -238,90 +223,82 @@ The ones that I'm really uncertain of, I will leave as "Unknown." When needed I'
 FeaturePlot(so, features = "Aqp4", label = TRUE)
 FeaturePlot(so, features = "Acsbg1", label = TRUE)
 FeaturePlot(so, features = "Slc1a2", label = TRUE)
-# Clusters: 5, 17, 22
+# Cluster 3
 
 # Choroid plexus cell: Ttr, Ecrg4, Enpp2
 FeaturePlot(so, features = "Ttr", label = TRUE)
 FeaturePlot(so, features = "Ecrg4", label = TRUE)
 FeaturePlot(so, features = "Enpp2", label = TRUE)
-# Clusters: 0, 18
+# Clusters 2, 4, 9, 12, 13, 15
 
 # Endothelial cell: Flt1, Slco1a4, Mecom
 FeaturePlot(so, features = "Flt1", label = TRUE)
 FeaturePlot(so, features = "Slco1a4", label = TRUE)
 FeaturePlot(so, features = "Mecom", label = TRUE)
-# Clusters: 13
+# Cluster 14
 
 # Macrophage: F13a1, H2-Aa, Lyve1
 FeaturePlot(so, features = "F13a1", label = TRUE)
 FeaturePlot(so, features = "H2-Aa", label = TRUE)
 FeaturePlot(so, features = "Lyve1", label = TRUE)
-# Clusters: 11, 20
+# Cluster 11
 
 # Microglia: P2ry12, Hexb, Trem2
 FeaturePlot(so, features = "P2ry12", label = TRUE)
 FeaturePlot(so, features = "Hexb", label = TRUE)
 FeaturePlot(so, features = "Trem2", label = TRUE)
-# Clusters: 1, 4, 8, 14, 19
+# Clusters 0, 7
 
 # Neuron: Syt1, Snap25, Nrn1
 FeaturePlot(so, features = "Syt1", label = TRUE)
 FeaturePlot(so, features = "Snap25", label = TRUE)
 FeaturePlot(so, features = "Nrn1", label = TRUE)
-# Clusters: 10
+# Cluster 10
 
 # Oligodendrocyte: Ermn, Mog, Aspa
 FeaturePlot(so, features = "Ermn", label = TRUE)
 FeaturePlot(so, features = "Mog", label = TRUE)
 FeaturePlot(so, features = "Aspa", label = TRUE)
-# Clusters: 2, 3, 6, 12, 15, 21, 26
+# Clusters 1, 5, 16
 
 # OPC: Pdgfra, Cacng4, Vcan
 FeaturePlot(so, features = "Pdgfra", label = TRUE)
 FeaturePlot(so, features = "Cacng4", label = TRUE)
 FeaturePlot(so, features = "Vcan", label = TRUE)
-# Clusters: 9
+# Clusters 8
 
 # T cell: Cd3d, Cd3e, Cd3g
 FeaturePlot(so, features = "Cd3d", label = TRUE)
 FeaturePlot(so, features = "Cd3e", label = TRUE)
 FeaturePlot(so, features = "Cd3g", label = TRUE)
-# Clusters: 7, 23, 24, 25
+# Clusters 6
 
-# Cluster 16 - Nothing manual - SingleR says fibroblasts? Not mentioned in paper, drop?
+# Other / too uncertain: Clusters 17, 18
 ```
 
 Now I'll create a vector of these manual cluster annotations:
 
 ```{r}
 cluster_annotations <- c(
-  "0" = "Choroid plexus cell",
-  "1" = "Microglia",
-  "2" = "Oligodendrocyte",
-  "3" = "Oligodendrocyte",
-  "4" = "Microglia",
-  "5" = "Astrocyte",
-  "6" = "Oligodendrocyte",
-  "7" = "T cell",
-  "8" = "Microglia",
-  "9" = "OPC",
+  "0" = "Microglia",
+  "1" = "Oligodendrocyte",
+  "2" = "Choroid plexus cell",
+  "3" = "Astrocyte",
+  "4" = "Choroid plexus cell",
+  "5" = "Oligodendrocyte",
+  "6" = "T cell",
+  "7" = "Microglia",
+  "8" = "OPC",
+  "9" = "Choroid plexus cell",
   "10" = "Neuron",
   "11" = "Macrophage",
-  "12" = "Oligodendrocyte",
-  "13" = "Endothelial cell",
-  "14" = "Microglia",
-  "15" = "Oligodendrocyte",
-  "16" = "Fibroblast",
-  "17" = "Astrocyte",
-  "18" = "Choroid plexus cell",
-  "19" = "Microglia",
-  "20" = "Macrophage",
-  "21" = "Oligodendrocyte",
-  "22" = "Astrocyte",
-  "23" = "T cell",
-  "24" = "T cell",
-  "25" = "T cell",
-  "26" = "Oligodendrocyte"
+  "12" = "Choroid plexus cell",
+  "13" = "Choroid plexus cell",
+  "14" = "Endothelial cell",
+  "15" = "Choroid plexus cell",
+  "16" = "Oligodendrocyte",
+  "17" = "Unknown",
+  "18" = "Unknown"
 )
 ```
 
@@ -338,13 +315,15 @@ so@meta.data$cell_type <- cluster_annotations[as.character(so$seurat_clusters)]
 Idents(so) <- "cell_type"
 # Idents(): Where cell idenities are stored in the Seurat object
 
-# Plot UMAP with new labels
+# Remove uncertain clusters (17+18) and plot with new labels
+so <- subset(so, cell_type != "Unknown")
 DimPlot(so, reduction = "umap", label = TRUE)
+
 # Save as a pdf
 ggsave("analysis/umap_annotated_manual.pdf", width = 8, height = 6)
 ```
 
-Now I can compare the expression of one gene across treatment groups, and see what populations it is in! This is the basis of several insights that are shown as figures in the paper.
+Now I can compare the expression of one gene across treatment groups, and see what populations it is in! This will be the foundation for some other analyses I want to try out.
 
 ## Ptpn1 Expression
 
@@ -495,3 +474,41 @@ DimPlot(microglia, reduction = "umap", label = TRUE)
 New clusters look good!
 
 > This revealed three distinct subclusters: homeostatic microglia (Homeostatic; expressing markers: Fcrls, Tmem119 and P2ry12), disease-associated microglia (DAM; expressing markers: Axl, Ctsl, and Trem2) and interferon-responsive microglia (IFN; expressing markers: Oasl2, Stat1, and Irf7).
+
+Figuring out which clusters correspond to each of these subpopulations will be similar to my manual annotations for all cell types:
+
+```{r}
+# Homeostatic microglia: Fcrls, Tmem119, P2ry12
+FeaturePlot(microglia, features = "Fcrls", label = TRUE)
+FeaturePlot(microglia, features = "Tmem119", label = TRUE)
+FeaturePlot(microglia, features = "P2ry12", label = TRUE)
+# Cluster 0
+
+# Disease-associated microglia: Axl, Ctsl, Trem2
+FeaturePlot(microglia, features = "Axl", label = TRUE)
+FeaturePlot(microglia, features = "Ctsl", label = TRUE)
+FeaturePlot(microglia, features = "Trem2", label = TRUE)
+# Cluster 1
+
+# Interferon-responsive microglia: Oasl2, Stat1, and Irf7
+FeaturePlot(microglia, features = "Oasl2", label = TRUE)
+FeaturePlot(microglia, features = "Stat1", label = TRUE)
+FeaturePlot(microglia, features = "Irf7", label = TRUE)
+# Cluster 2
+```
+
+Labeling the clusters based on this investigation, and plotting the result:
+
+```{r}
+microglia_annotations <- c(
+  "0" = "Homeostatic",
+  "1" = "DAM",
+  "2" = "IFN"
+)
+microglia@meta.data$cell_type <- microglia_annotations[as.character(microglia$seurat_clusters)]
+Idents(microglia) <- "cell_type"
+
+DimPlot(microglia, reduction = "umap", label = TRUE)
+```
+
+Now I have clustered the microglia and can compare gene expression between these populations!

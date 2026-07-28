@@ -104,8 +104,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Setting the working directory for R chunks</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_knit<span class="sc">$</span><span class="fu">set</span>(<span class="at">root.dir =</span> <span class="st">"/Users/spencerelliott/ptp1b_ad/results/kallisto_output"</span>)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Cache results so huge analysis doesn't have to be rerun</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">cache =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Setting the random seed to replicate results</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>seed <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"~/ptp1b_ad/results/original_seed.rds"</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">assign</span>(<span class="st">".Random.seed"</span>, seed, <span class="at">envir =</span> .GlobalEnv)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Cache results so huge analysis doesn't have to be rerun</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">cache =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="analyzing-the-feature-barcode-matrix-in-r" class="level2">
 <h2 class="anchored" data-anchor-id="analyzing-the-feature-barcode-matrix-in-r">Analyzing the Feature-Barcode Matrix in R</h2>
@@ -113,7 +116,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>This analysis will heavily follow the Guided Clustering Tutorial provided on the Seurat website: <a href="https://satijalab.org/seurat/articles/pbmc3k_tutorial.html" class="uri">https://satijalab.org/seurat/articles/pbmc3k_tutorial.html</a></p>
 <section id="creating-a-seurat-object-from-the-matrix" class="level3">
 <h3 class="anchored" data-anchor-id="creating-a-seurat-object-from-the-matrix">Creating a Seurat object from the matrix</h3>
-<p>I’ll start by loading in the Seurat package. Since the data is in matrix format, I will also use the Matrix package for some easier manipulation. Lastly the dplyr package is always helpful for piping commands and moving data around. And ggplot2 is always handy when you are plotting.</p>
+<p>I’ll start by loading in the Seurat package. Since the data is in matrix format, I will also use the Matrix package for some easier manipulation. The dplyr package is always helpful for piping commands and moving data around. And lastly ggplot2 is always handy for plotting.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
@@ -162,7 +165,7 @@ Attaching package: 'dplyr'</code></pre>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> <span class="fu">t</span>(counts)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Next I will bring in the lists of barcode and feature names:</p>
+<p>Next I’ll bring in the lists of barcode and feature names:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>barcodes <span class="ot">&lt;-</span> <span class="fu">readLines</span>(<span class="st">"counts.barcodes.txt"</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>features <span class="ot">&lt;-</span> <span class="fu">readLines</span>(<span class="st">"counts.genes.txt"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -535,6 +538,9 @@ Negative:  Ly6h, Rtn1, Meg3, Stmn3, Fxyd6, Bex1, Bex2, Chgb, Reln, 6330403K07Rik
 </div>
 <p>The x-axis is the list of PCs from highest to lowest standard deviation, which is given on the y-axis. A higher standard deviation indicates more variance being represented by that PC.</p>
 <p>Where there are big drops in standard deviation, we can say that the PCs are capturing meaningful variation. The “elbow” is where the curve flattens out and PCs are no longer different in a way that is meaningful. To be extra safe, I will include PC1-15 for the rest of the analysis. After these results, the standard deviation becomes extremely low.</p>
+</section>
+<section id="clustering" class="level3">
+<h3 class="anchored" data-anchor-id="clustering">Clustering</h3>
 <p>Clustering the cells is done using two commands. FindNeighbors identifies cells with similar expression profiles across all 15 PCs and assigns “neighborhoods,” connecting them together. FindClusters is what actually assigns each cell to a cluster.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(so, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -957,7 +963,7 @@ Attaching package: 'celldex'</code></pre>
 </div>
 </div>
 </div>
-<p>This is the first step to verifying these cell types! For example, cluster 12 was predicted to be neurons by SingleR. Looking at a canonical marker gene for neurons, Snap25:</p>
+<p>This is also how I can start manually annotating the clusters. For example, cluster 12 was predicted to be neurons by SingleR. Looking at a marker gene for neurons, Snap25:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb157"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb157-1"><a href="#cb157-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Snap25"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -968,8 +974,8 @@ Attaching package: 'celldex'</code></pre>
 </div>
 </div>
 </div>
-<p>It is most expressed in cluster 12! This is the type of analysis that will help verify these results. These canonical marker genes can come from knowledge/experience and can also be found in many online resources.</p>
-<p>At this point, I’m going to figure out how to bring in the other samples so I can start making comparisons between treatment groups.</p>
+<p>It is most expressed in cluster 12! Manually annotating the clusters with marker genes is the best way to verify these results. Markers can come from knowledge/experience and can also be found in many online resources. In this case a heatmap in the paper’s supplemental info (Fig.S4B) describes which markers were used.</p>
+<p>At this point, I’m going to figure out how to bring in the other samples to enable comparison between treatment groups.</p>
 </section>
 </section>
 
