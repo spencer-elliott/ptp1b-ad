@@ -1,4 +1,11 @@
 
+# ==========
+# PTP1B scRNA-seq Analysis
+# Checking out other cell types
+# By Spencer :D
+# ==========
+
+
 # Endothelial Cell Analysis ----
 
 # Loading the Seurat object

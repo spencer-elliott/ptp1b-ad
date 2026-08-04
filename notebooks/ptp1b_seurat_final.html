@@ -103,21 +103,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Setting the working directory for R chunks</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_knit<span class="sc">$</span><span class="fu">set</span>(<span class="at">root.dir =</span> <span class="st">"/Users/spencerelliott/ptp1b_ad/results"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>.Random.seed <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"original_seed.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_knit<span class="sc">$</span><span class="fu">set</span>(<span class="at">root.dir =</span> <span class="st">"/Users/spencerelliott/ptp1b_ad/results/cellbender_output"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Setting the random seed to replicate results</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>seed <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"~/ptp1b_ad/results/original_seed.rds"</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">assign</span>(<span class="st">".Random.seed"</span>, seed, <span class="at">envir =</span> .GlobalEnv)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Cache results so huge analysis doesn't have to be rerun</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">cache =</span> <span class="cn">TRUE</span>, <span class="at">cache.lazy =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="seurat-analysis-for-all-samples" class="level2">
 <h2 class="anchored" data-anchor-id="seurat-analysis-for-all-samples">Seurat Analysis for All Samples</h2>
-<p>Running CellRanger resulted in a feature-barcode matrix for all four samples. Now I can bring this data into Seurat and perform the same QC and clustering analysis that I did for just one sample earlier. This will open the door to comparing expression in different cell types across the two treatment groups.</p>
-<p>For many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd!</p>
-<p>Once again this analysis will heavily follow by the Seurat tutorial found here: <a href="https://satijalab.org/seurat/articles/pbmc3k_tutorial.html" class="uri">https://satijalab.org/seurat/articles/pbmc3k_tutorial.html</a></p>
+<p>Running CellRanger resulted in a feature-barcode matrix for all four samples, and CellBender cleaned up these results extensively. Now I can bring my data into Seurat and perform QC and clustering analysis, like I did for just one sample earlier. I’m also going to do some more detailed preprocessing, incorporating other tools that were used on this data in the paper.</p>
+<p>This will open the door to comparing expression in different cell types across the two treatment groups!</p>
+<p>Once again this analysis will heavily follow the Seurat tutorial found here: <a href="https://satijalab.org/seurat/articles/pbmc3k_tutorial.html" class="uri">https://satijalab.org/seurat/articles/pbmc3k_tutorial.html</a><br>
+Also remember that for many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd.</p>
 <section id="creating-the-merged-seurat-object" class="level3">
 <h3 class="anchored" data-anchor-id="creating-the-merged-seurat-object">Creating the merged Seurat object</h3>
 <p>Loading in the same packages as earlier:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Loading required package: SeuratObject</code></pre>
 </div>
@@ -133,8 +136,8 @@ Attaching package: 'SeuratObject'</code></pre>
 
     intersect, t</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Matrix)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Matrix)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
 Attaching package: 'dplyr'</code></pre>
@@ -149,53 +152,53 @@ Attaching package: 'dplyr'</code></pre>
 
     intersect, setdiff, setequal, union</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The first step is reading in the matrix. The .mtx file is found in a subfolder called “filtered_feature_bc_matrix” in the “outs” folder from each CellRanger run. This folder also conveniently contains lists of the barcodes and genes, named “barcodes.tsv: and”features.tsv” respectively.</p>
+<p>The first step is reading in the matrix. CellBender outputs the filtered matrices in a .h5 format that can be read in with Read10X_h5. This also contains all the other needed info, like lists of barcodes and features, that I needed to bring in separately before.</p>
 <p>Seurat has a built-in command for reading in the matrix as these three files together. This will help me skip past steps I had to to before like replacing the Ensembl IDs with gene names!</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>KO1 <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="st">"cellranger_output/KO_SRR36691286/filtered_feature_bc_matrix/"</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>KO2 <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="st">"cellranger_output/KO_SRR36691287/filtered_feature_bc_matrix/"</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>AD1 <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="st">"cellranger_output/AD_SRR36691288/filtered_feature_bc_matrix/"</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>AD2 <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="st">"cellranger_output/AD_SRR36691288/filtered_feature_bc_matrix/"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>KO1 <span class="ot">&lt;-</span> <span class="fu">Read10X_h5</span>(<span class="st">"KO_SRR36691286_cellbender_filtered_seurat.h5"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>KO2 <span class="ot">&lt;-</span> <span class="fu">Read10X_h5</span>(<span class="st">"KO_SRR36691287_cellbender_filtered_seurat.h5"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>AD1 <span class="ot">&lt;-</span> <span class="fu">Read10X_h5</span>(<span class="st">"AD_SRR36691288_cellbender_filtered_seurat.h5"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>AD2 <span class="ot">&lt;-</span> <span class="fu">Read10X_h5</span>(<span class="st">"AD_SRR36691289_cellbender_filtered_seurat.h5"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Compared to my Kallisto output, this matrix has already been filtered for empty droplets as well. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I’ll use separate project names for the two treatment groups to keep track of them after merging.</p>
+<p>Compared to my Kallisto output, this matrix is also already filtered for empty droplets thanks to CellRanger and CellBender. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I’ll use separate project names for the two treatment groups to keep track of them after merging.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>KO1 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> KO1, <span class="at">project =</span> <span class="st">"KO"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>KO2 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> KO2, <span class="at">project =</span> <span class="st">"KO"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>AD1 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> AD1, <span class="at">project =</span> <span class="st">"AD"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>AD2 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> AD2, <span class="at">project =</span> <span class="st">"AD"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">merge</span>(KO1, <span class="at">y =</span> <span class="fu">list</span>(KO2, AD1, AD2), </span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">add.cell.ids =</span> <span class="fu">c</span>(<span class="st">"KO1"</span>, <span class="st">"KO2"</span>, <span class="st">"AD1"</span>, <span class="st">"AD2"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>KO1 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> KO1, <span class="at">project =</span> <span class="st">"KO"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>KO2 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> KO2, <span class="at">project =</span> <span class="st">"KO"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>AD1 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> AD1, <span class="at">project =</span> <span class="st">"AD"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>AD2 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> AD2, <span class="at">project =</span> <span class="st">"AD"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">merge</span>(KO1, <span class="at">y =</span> <span class="fu">list</span>(KO2, AD1, AD2), </span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">add.cell.ids =</span> <span class="fu">c</span>(<span class="st">"KO1"</span>, <span class="st">"KO2"</span>, <span class="st">"AD1"</span>, <span class="st">"AD2"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="filtering-low-quality-cells" class="level3">
 <h3 class="anchored" data-anchor-id="filtering-low-quality-cells">Filtering Low-Quality Cells</h3>
 <p>Once again Seurat provides “nCount_RNA” and “nFeature_RNA” for identifying the cells with dangerously low amounts of UMIs/features. Tracking mitochondrial percentage is also much easier this time, as CellRanger follows the naming convention where mouse mitochondrial genes start with “mt-”!</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>so[[<span class="st">"percent.mt"</span>]] <span class="ot">&lt;-</span> <span class="fu">PercentageFeatureSet</span>(so, <span class="at">pattern =</span> <span class="st">"^mt-"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>so[[<span class="st">"percent.mt"</span>]] <span class="ot">&lt;-</span> <span class="fu">PercentageFeatureSet</span>(so, <span class="at">pattern =</span> <span class="st">"^mt-"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Looking at some metadata for QC, the percentages look around what we would expect:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(so<span class="sc">@</span>meta.data, <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(so<span class="sc">@</span>meta.data, <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                       orig.ident nCount_RNA nFeature_RNA percent.mt
-KO1_AAACCCAAGGCAGTCA-1         KO       8250         3051   3.563636
-KO1_AAACCCAAGGTAGACC-1         KO       2173         1173  15.784630
-KO1_AAACCCACATCCCGTT-1         KO        751          557   7.856192
-KO1_AAACCCAGTAACTTCG-1         KO      11138         3800   3.205243
-KO1_AAACCCAGTAGTACGG-1         KO       7404         2803   3.687196
-KO1_AAACCCAGTATTGAGA-1         KO       5322         1982   3.231868
-KO1_AAACGAACAGTGTGGA-1         KO       7848         3637   5.313456
-KO1_AAACGAATCATCGCCT-1         KO       9069         3455   2.756644
-KO1_AAACGAATCTCTGACC-1         KO       7176         2911   2.578038
-KO1_AAACGCTAGCCAACCC-1         KO       6429         2529   8.461658</code></pre>
+KO1_CCAATGATCCGGCAAC-1         KO      45504         6877  2.1514592
+KO1_GAATCGTCACCTGTCT-1         KO      34320         7510  1.1742424
+KO1_TTAGGGTTCACGGACC-1         KO      33992         5808  2.0828430
+KO1_GTGATGTGTATGCTAC-1         KO      28071         5920  3.1277831
+KO1_CACAGGCCAGTCGTTA-1         KO      27277         6078  2.5625985
+KO1_CTTACCGAGCACCGAA-1         KO      27224         5475  0.1616221
+KO1_CCTCCAAAGGTCCAGA-1         KO      27088         6472  1.8052274
+KO1_TTGCATTCAGTCTTCC-1         KO      26294         5446  2.3389366
+KO1_TGTTACTGTTAAGACA-1         KO      26015         5667  1.3722852
+KO1_TCATTTGGTTCCCAAA-1         KO      25827         6070  2.4083324</code></pre>
 </div>
 </div>
 <p>I’ll use a violin plot again to help decide cutoffs for these QC metrics:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(so, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"nCount_RNA"</span>, <span class="st">"percent.mt"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(so, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"nCount_RNA"</span>, <span class="st">"percent.mt"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: Default search for "data" layer in "RNA" assay yielded no results;
 utilizing "counts" layer instead.</code></pre>
@@ -203,7 +206,7 @@ utilizing "counts" layer instead.</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -215,17 +218,17 @@ utilizing "counts" layer instead.</code></pre>
 </ul>
 <p>Checking out some feature scatter plots will help as well:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot # of UMIs vs mitochondrial content</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(so, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"percent.mt"</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot # of UMIs vs # of features</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(so, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"nFeature_RNA"</span>)</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>plot1 <span class="sc">+</span> plot2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot # of UMIs vs mitochondrial content</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(so, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"percent.mt"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot # of UMIs vs # of features</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(so, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"nFeature_RNA"</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>plot1 <span class="sc">+</span> plot2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -234,187 +237,356 @@ utilizing "counts" layer instead.</code></pre>
 <li><p>nCount_RNA vs percent.mt: Cells with the highest mitochondrial content also have the lowest UMI counts, a result typically expected from dead/dying cells.</p></li>
 <li><p>nCount_RNA vs nFeature_RNA: A 0.94 correlation between UMI count and gene count. Points that are way to far above have way too many features and are doublet candidates.</p></li>
 </ul>
-<p>Based on these plots I’m going to go with these parameters for filtering, using upper and lower boundaries this time:</p>
+<p>Since it seems to line up with what I’m seeing, I’m going to use the same filters that were used in the paper for this step:</p>
 <ul>
 <li><p>500 &lt; nFeature_RNA &lt; 6000</p></li>
 <li><p>1000 &lt; nCount_RNA &lt; 30000</p></li>
-<li><p>percent.mt &lt; 20</p></li>
+<li><p>percent.mt &lt; 10</p></li>
 </ul>
 <p>Applying this to the data:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">subset</span>(so, <span class="at">subset =</span> nFeature_RNA <span class="sc">&gt;</span> <span class="dv">500</span> <span class="sc">&amp;</span> </span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>                       nFeature_RNA <span class="sc">&lt;</span> <span class="dv">6000</span> <span class="sc">&amp;</span> </span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                       nCount_RNA <span class="sc">&gt;</span> <span class="dv">1000</span> <span class="sc">&amp;</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                       nCount_RNA <span class="sc">&lt;</span> <span class="dv">30000</span> <span class="sc">&amp;</span> </span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>                       percent.mt <span class="sc">&lt;</span> <span class="dv">20</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">subset</span>(so, <span class="at">subset =</span> nFeature_RNA <span class="sc">&gt;</span> <span class="dv">500</span> <span class="sc">&amp;</span> </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                       nFeature_RNA <span class="sc">&lt;</span> <span class="dv">6000</span> <span class="sc">&amp;</span> </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                       nCount_RNA <span class="sc">&gt;</span> <span class="dv">1000</span> <span class="sc">&amp;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                       nCount_RNA <span class="sc">&lt;</span> <span class="dv">30000</span> <span class="sc">&amp;</span> </span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>                       percent.mt <span class="sc">&lt;</span> <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="normalization" class="level3">
-<h3 class="anchored" data-anchor-id="normalization">Normalization</h3>
-<p>Normalization prevents a cell with more total UMIs from looking like it has more expression for each gene. It is easily run with one command:</p>
+<section id="normalization-variable-genes-and-scaling" class="level3">
+<h3 class="anchored" data-anchor-id="normalization-variable-genes-and-scaling">Normalization, Variable Genes, and Scaling</h3>
+<p>Continuing to follow the paper I’m going to use SCTransform this time, a tool that’s included in the Seurat package. This performs normalization, identifies variable features, and scales the data in one easy step!</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(so, <span class="at">normalization.method =</span> <span class="st">"LogNormalize"</span>, <span class="at">scale.factor =</span> <span class="dv">10000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">SCTransform</span>(so, <span class="at">vars.to.regress =</span> <span class="st">"percent.mt"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Normalizing layer: counts.1</code></pre>
+<pre><code>Running SCTransform on assay: RNA</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Normalizing layer: counts.2</code></pre>
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Normalizing layer: counts.3</code></pre>
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Normalizing layer: counts.4</code></pre>
+<pre><code>Variance stabilizing transformation of count matrix of size 19172 by 4015</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 4015 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 26 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 19172 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 19172 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 25.7147 secs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 19763 by 5589</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 5000 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 63 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 19763 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 19763 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 32.6643 secs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 20777 by 11703</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 5000 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 147 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 20777 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 20777 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 1.131241 mins</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 21245 by 13492</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 5000 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 178 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 21245 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 21245 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 1.382362 mins</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Set default assay to SCT</code></pre>
 </div>
 </div>
 </section>
-<section id="identifying-highly-variable-genes" class="level3">
-<h3 class="anchored" data-anchor-id="identifying-highly-variable-genes">Identifying Highly Variable Genes</h3>
-<p>The Seurat tutorial recommends identifying genes with the highest cell-to-cell variation in expression, and focusing on them for downstream analysis. This removes noise from the genes that are expressed the same across all cells. I will follow their steps to create a subset of the 2000 most variable genes in this dataset (already identified by name rather than Ensembl ID!), and take a quick look at the top 10:</p>
+<section id="pca-and-batch-correction" class="level3">
+<h3 class="anchored" data-anchor-id="pca-and-batch-correction">PCA and Batch Correction</h3>
+<p>Now I can run the PCA on this list of variable features:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">FindVariableFeatures</span>(so, <span class="at">selection.method =</span> <span class="st">"vst"</span>, <span class="at">nfeatures =</span> <span class="dv">2000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Finding variable features for layer counts.1</code></pre>
+<pre><code>Warning in PrepDR(object = object, features = features, verbose = verbose): The
+following 15 features requested have not been scaled (running reduction without
+them): Igfbpl1, Dnah12, S100a9, S100a8, Ly6d, Cd79a, Retnlg, Iglc1, Tmem212,
+Wfdc21, Ms4a1, Mmp8, Ccdc153, Iglc2, H2-M2</code></pre>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Finding variable features for layer counts.2</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Finding variable features for layer counts.3</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Finding variable features for layer counts.4</code></pre>
-</div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>top10 <span class="ot">&lt;-</span> <span class="fu">head</span>(<span class="fu">VariableFeatures</span>(so), <span class="dv">10</span>)</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>top10</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code> [1] "Lhfpl3"  "Cd74"    "H2-Aa"   "H2-Eb1"  "Cntnap2" "Kcnh7"   "Reln"   
- [8] "H2-Ab1"  "Lrrtm4"  "Nrxn3"  </code></pre>
-</div>
-</div>
-<p>Visualizing the genes as a variable feature plot with the top 10 most highly variable genes labeled:</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">VariableFeaturePlot</span>(so)</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">LabelPoints</span>(<span class="at">plot =</span> plot1, <span class="at">points =</span> top10, <span class="at">repel =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>When using repel, set xnudge and ynudge to 0 for optimal results</code></pre>
-</div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>plot2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning in scale_x_log10(): log-10 transformation introduced infinite values.</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Removed 2242 rows containing missing values or values outside the scale range
-(`geom_point()`).</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="scaling-pca" class="level3">
-<h3 class="anchored" data-anchor-id="scaling-pca">Scaling / PCA</h3>
-<p>Once again, the data needs to be scaled before PCA. Scaling ensures that the principal components are not dominated by genes with a higher overall magnitude of expression.</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">ScaleData</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Centering and scaling data matrix</code></pre>
-</div>
-</div>
-<p>Now I can run the PCA on this list of variable features, and visualize the PCs with an elbow plot:</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>PC_ 1 
-Positive:  Ctsd, Cst3, Laptm5, Ctss, Csf1r, Ly86, C1qa, Cyba, Cx3cr1, Hexb 
-       Rgs10, Selplg, C1qc, Fcer1g, Inpp5d, Fyb, Gpr34, Dock2, Trem2, Siglech 
-       C1qb, Dock8, Ctsz, Tyrobp, Hpgds, Ikzf1, Pde3b, P2ry12, Vsir, Lyn 
-Negative:  Magi2, Pcdh9, Ncam1, Lrp1b, Gpm6b, Ptprd, Pde4b, Sox2ot, Mapt, Ncam2 
-       Gnao1, Mdga2, Phlpp1, Dlg2, Dnm3, Lrrc4c, Ptn, Syt11, Grm3, Edil3 
-       Tmem178b, Erbb4, Ank3, Tmeff2, Auts2, Cadm2, Grid2, Grik2, Limch1, Fez1 
+Positive:  Lsamp, Gpc5, Slc1a2, Ntm, Ptprz1, Nrxn1, Gabrb1, Luzp2, Sparcl1, Slc4a4 
+       Kcnd2, Plpp3, Atp1a2, Adgrb3, Gria2, Dgkb, Ctnnd2, Csmd1, Fgf14, Rorb 
+       Gm3764, Cspg5, Rgs20, Gja1, Prex2, Ptprt, Rora, Sox6, Plcb1, Pcdh7 
+Negative:  C1qa, Cst3, Ctss, Hexb, C1qb, Tyrobp, Ctsd, Tmsb4x, Cx3cr1, C1qc 
+       Trem2, Ly86, Fcer1g, Lyz2, Tgfbr1, P2ry12, Plxdc2, Csf1r, Gpr34, Siglech 
+       Laptm5, Cd74, Inpp5d, Selplg, Zfhx3, Pde3b, Ctsz, Cd52, 4933406I18Rik, Lyn 
 PC_ 2 
-Positive:  Trf, Ptgds, Mag, Mal, Mog, St18, Prr5l, Mbp, Nkain2, Cldn11 
-       Plp1, Mobp, Aspa, Ermn, Tubb4a, Tspan2, Plekhh1, Kctd13, Apod, Slc24a2 
-       Ttll7, Ppp1r14a, Sept4, C030029H02Rik, Stmn4, Qdpr, Opalin, Ugt8a, D7Ertd443e, Efnb3 
-Negative:  Ntm, Gria2, Gpc5, Ptprz1, Gm3764, Ppp2r2b, Sox6, Plcb1, Dgkb, Nrcam 
-       Fgf14, Rgs20, Gabrb1, Bcan, Ptprt, Cspg5, Gpc6, Fmn2, Slc4a4, Gpr37l1 
-       Rora, Slc1a2, Rorb, Sparcl1, Lsamp, Trim9, Luzp2, Astn1, Pcdh7, Mmd2 
+Positive:  Plp1, Nkain2, Ptgds, Pde4b, Pcdh9, Mal, Mbp, Slc24a2, Tmeff2, Magi2 
+       Edil3, St18, Ptprd, Apod, Frmd5, Stmn1, Tubb4a, Pex5l, Ermn, Cnp 
+       Gatm, Mobp, Mag, Lrp1b, Qdpr, Prr5l, Sept4, Aplp1, Car2, Malat1 
+Negative:  Cst3, C1qa, Ctss, Hexb, C1qb, Tyrobp, Gpc5, Ctsd, Slc1a2, Cx3cr1 
+       C1qc, Trem2, Ly86, Ntm, Fcer1g, Lsamp, Tgfbr1, Gabrb1, P2ry12, Lyz2 
+       Csf1r, Tmsb4x, Slc4a4, Sparcl1, Gpr34, Fgf13, Siglech, Zfhx3, Laptm5, Inpp5d 
 PC_ 3 
-Positive:  Plxdc2, Csmd3, Tanc2, Slc8a1, Epb41l2, Dock4, Ldlrad4, Lrmda, Gab2, Tgfbr1 
-       Srgap2, Pag1, Ubash3b, Nav2, Apbb1ip, Slc9a9, Inpp5d, Cx3cr1, Lyn, P2ry12 
-       Zfhx3, Csf1r, Maml3, Pde3b, Mir99ahg, Arsb, Mef2c, Unc93b1, Ly86, Numb 
-Negative:  Chchd10, Ecrg4, Sostdc1, Fxyd1, Igfbp2, Calml4, 2900040C04Rik, Rbp1, Mt3, Clu 
-       Folr1, Kl, Prlr, Atp1b1, Ttr, Spint2, Enpp2, Tubb4b, Hemk1, Kcnj13 
-       Igf2, Lbp, Ppp1r1b, Pcp4l1, Cdkn1c, Bsg, Clic6, Acaa2, Rsph1, Rdh5 
+Positive:  Slc1a2, Gabrb1, Slc4a4, Plp1, Gpc5, Sparcl1, Plpp3, Ntm, Atp1a2, Gja1 
+       Prex2, Rorb, Aldoc, Slc1a3, Pla2g7, Dgkb, Rgs20, Ntsr2, Trpm3, Wdr17 
+       Nkain2, Gm3764, Nhsl1, Cst3, Gpr37l1, Cldn10, St6galnac5, Gm6145, Aqp4, Ptgds 
+Negative:  Fam155a, Nrg3, Kcnb2, Nrg1, Lhfpl3, Cntnap2, Reln, Kcnh7, Lrrtm4, Opcml 
+       Ndnf, Tnr, Snhg11, Meg3, Dscam, Nrxn3, Clstn2, Nxph1, Kcnq5, Syt1 
+       Csmd1, Thsd7b, Lingo2, Cntn5, Adarb2, Sntg1, Rbfox1, Sgcd, Pcdh15, Slc35f1 
 PC_ 4 
-Positive:  Gja1, Gm6145, Prex2, Gli3, Bmpr1b, Ntsr2, Slc6a11, Fgfr3, Rorb, Phkg1 
-       Aqp4, Pla2g7, Cldn10, Gjb6, Slc4a4, Acsbg1, S1pr1, Nwd1, Grin2c, Gabrb1 
-       Slc1a3, Paqr8, Nhsl1, St6galnac5, Tenm3, Lama2, Slc1a2, Mlc1, Egfr, Rgs20 
-Negative:  Fam155a, Nrg3, Meg3, Kcnb2, Thsd7b, Nrg1, Ly6h, Fam189a1, Nkain3, Erc2 
-       Clstn2, Kcnh7, Snhg11, Myt1l, Syt1, Reln, Hs6st3, Snap25, Kcnc2, Kcnq5 
-       Ptprn2, Cntnap2, Cntn5, Ndnf, Lingo2, Gabrb3, Lrfn5, Rit2, Hs3st5, Khdrbs2 
+Positive:  Cst3, C1qa, Lhfpl3, Csmd1, Tnr, Hexb, Dscam, Nxph1, Ctss, Nrxn3 
+       Lrrtm4, Kcnd2, C1qb, Pcdh15, Rbfox1, Cx3cr1, Plp1, Sgcd, Tyrobp, Adarb2 
+       Sntg1, C1qc, Ctsd, Trem2, Csmd3, Sgcz, Ly86, Brinp3, Plxdc2, Pcdh9 
+Negative:  Skap1, Ccl5, Ms4a4b, Gm2682, Cd3g, Themis, AW112010, Ttr, Reln, Cntnap2 
+       Ndnf, Cd226, Grap2, Trbc2, Kcnh7, Nkg7, Robo2, Snhg11, Tmsb10, Ltb 
+       Syt1, Clstn2, Cd3e, Arhgap15, Cd3d, Ptpn22, Gimap3, Kcnb2, Cntn5, Itk 
 PC_ 5 
-Positive:  Ctsl, Cst3, Ltc4s, Apoe, Nav3, Ctsd, Ctsz, Sparc, Bsg, Ctsb 
-       Itgb5, Enpp2, Ttr, P2ry12, Nav2, Cx3cr1, Plxdc2, Siglech, Basp1, Csf1r 
-       Hexb, Sostdc1, Ecrg4, Zfhx3, Lpcat2, Marcks, Igfbp2, Csmd3, Ly86, Olfml3 
-Negative:  Ms4a4b, Skap1, Cd3g, Themis, Cd3e, Grap2, Trbc2, Cd3d, Gimap3, Itk 
-       Nkg7, Gm2682, Gimap4, Cd226, Ctsw, Cxcr6, Ptpn22, Lck, Bcl11b, Ptprcap 
-       Ltb, Ccl5, Gimap7, AW112010, Trac, Ikzf3, Stat4, Cd2, Thy1, Runx3 </code></pre>
+Positive:  Skap1, Ccl5, Ms4a4b, Lhfpl3, Gm2682, Csmd1, Cd3g, Themis, Tnr, AW112010 
+       Nxph1, Dscam, Nrxn3, Kcnd2, Lrrtm4, Cd226, Grap2, Trbc2, Arhgap15, Sgcd 
+       Pcdh15, Nkg7, Ltb, Adarb2, Rbfox1, Cd3e, Sntg1, Ptpn22, Sgcz, Cd3d 
+Negative:  Reln, Cntnap2, Ndnf, Kcnh7, Snhg11, Robo2, Syt1, Kcnb2, Clstn2, Cntn5 
+       Lingo2, Thsd7b, Meg3, Dach1, Hs6st3, Nrg1, Kcnc2, Stmn2, Cacna2d1, Hs3st5 
+       Cacna2d2, Nhlh2, Kcnq5, Epha3, Cst3, Car10, Kcnip4, Pdzd2, Fat3, Trp73 </code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ElbowPlot</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>One more step from the real analysis that I’m gonna insert here is batch correction with a tool called Harmony. This prevents separation in the PCs from technical errors or differences between the samples, and makes sure that the clustering is purely based on cell type. Running this and then checking out the elbow plot of PCs:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(harmony)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'harmony' was built under R version 4.3.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Rcpp</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">RunHarmony</span>(so, <span class="at">group.by.vars =</span> <span class="st">"orig.ident"</span>, <span class="at">assay.use =</span> <span class="st">"SCT"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Transposing data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Initializing state using k-means centroids initialization</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 1/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 2/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 3/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 4/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 5/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 6/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 7/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 8/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony converged after 8 iterations</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ElbowPlot</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Similar to my previous analysis, the curve really starts to flatten out around PC 15 or even a little earlier. I will include PCs 1-15 to keep the most meaningful variation. I’ll use these PCs to cluster the cells:</p>
+<p>Similar to my previous analysis, the curve really starts to flatten out around PC 15 or even a little earlier. However I’m going to stick with the paper where they keep PCs 1-30.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(so, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(so, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>, <span class="at">reduction =</span> <span class="st">"harmony"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Computing nearest neighbor graph</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Computing SNN</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">FindClusters</span>(so, <span class="at">resolution =</span> <span class="fl">0.5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">FindClusters</span>(so, <span class="at">resolution =</span> <span class="fl">0.15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
 
-Number of nodes: 35017
-Number of edges: 1065242
+Number of nodes: 34799
+Number of edges: 1133953
 
 Running Louvain algorithm...
-Maximum modularity in 10 random starts: 0.9316
-Number of communities: 26
-Elapsed time: 4 seconds</code></pre>
+Maximum modularity in 10 random starts: 0.9796
+Number of communities: 19
+Elapsed time: 5 seconds</code></pre>
 </div>
 </div>
 <p>Now I can run UMAP to condense these PCs down to 2 dimensions, and make a readable map with the clusters.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(so, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(so, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>, <span class="at">reduction =</span> <span class="st">"harmony"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric
 To use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'
 This message will be shown once per session</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>14:22:00 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
+<pre><code>13:47:37 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>14:22:00 Read 35017 rows and found 15 numeric columns</code></pre>
+<pre><code>13:47:37 Read 34799 rows and found 30 numeric columns</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>14:22:00 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
+<pre><code>13:47:37 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>14:22:00 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
+<pre><code>13:47:37 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>0%   10   20   30   40   50   60   70   80   90   100%</code></pre>
@@ -424,31 +596,31 @@ This message will be shown once per session</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>**************************************************|
-14:22:05 Writing NN index file to temp file /var/folders/77/q8ngnfb94_bfvxjk__b52rvh0000gn/T//RtmpINnJvf/file7c24750f54e7
-14:22:05 Searching Annoy index using 1 thread, search_k = 3000
-14:22:20 Annoy recall = 100%
-14:22:20 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-14:22:22 Initializing from normalized Laplacian + noise (using RSpectra)
-14:22:29 Commencing optimization for 200 epochs, with 1334632 positive edges
-14:22:29 Using rng type: pcg
-14:22:51 Optimization finished</code></pre>
+13:47:41 Writing NN index file to temp file /var/folders/77/q8ngnfb94_bfvxjk__b52rvh0000gn/T//RtmpG604sX/file9ae7504f8c23
+13:47:41 Searching Annoy index using 1 thread, search_k = 3000
+13:47:52 Annoy recall = 100%
+13:47:54 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+13:47:56 Initializing from normalized Laplacian + noise (using RSpectra)
+13:48:03 Commencing optimization for 200 epochs, with 1411682 positive edges
+13:48:03 Using rng type: pcg
+13:48:24 Optimization finished</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(so, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb117"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(so, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>This looks pretty good with many distinct large clusters. The next step is to annotate each cluster with a cell type based on which marker genes it is expressing.</p>
+<p>This looks pretty good again, with many distinct clusters to check out. The next step is annotating each cluster with a cell type based on which marker genes it is expressing.</p>
 </section>
 <section id="assigning-identity-to-clusters" class="level3">
 <h3 class="anchored" data-anchor-id="assigning-identity-to-clusters">Assigning Identity to Clusters</h3>
 <p>I’ll try running an automatic annotation again with SingleR as a starting point. Loading packages and the reference dataset for mouse RNA-seq:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SingleR)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SingleR)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Loading required package: SummarizedExperiment</code></pre>
 </div>
@@ -619,7 +791,7 @@ Attaching package: 'SummarizedExperiment'</code></pre>
 
     Assays</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(celldex)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb155"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb155-1"><a href="#cb155-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(celldex)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
 Attaching package: 'celldex'</code></pre>
@@ -631,7 +803,7 @@ Attaching package: 'celldex'</code></pre>
     HumanPrimaryCellAtlasData, ImmGenData, MonacoImmuneData,
     MouseRNAseqData, NovershternHematopoieticData</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>ref <span class="ot">&lt;-</span> celldex<span class="sc">::</span><span class="fu">MouseRNAseqData</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a>ref <span class="ot">&lt;-</span> celldex<span class="sc">::</span><span class="fu">MouseRNAseqData</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>see ?celldex and browseVignettes('celldex') for documentation</code></pre>
 </div>
@@ -647,27 +819,27 @@ Attaching package: 'celldex'</code></pre>
 </div>
 <p>Now I’ll take the raw UMI counts from this Seurat object and pass them over to SingleR, which will create a vector with cell type predictions for each cluster:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">JoinLayers</span>(so)</span>
-<span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a>counts.singleR <span class="ot">&lt;-</span> <span class="fu">GetAssayData</span>(so, <span class="at">layer =</span> <span class="st">"counts"</span>)</span>
-<span id="cb104-3"><a href="#cb104-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb104-4"><a href="#cb104-4" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">SingleR</span>(<span class="at">test =</span> counts.singleR, <span class="at">ref =</span> ref, <span class="at">labels =</span> ref<span class="sc">$</span>label.main)</span>
-<span id="cb104-5"><a href="#cb104-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb104-6"><a href="#cb104-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pred<span class="sc">$</span>labels, <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb163"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb163-1"><a href="#cb163-1" aria-hidden="true" tabindex="-1"></a>counts.singleR <span class="ot">&lt;-</span> <span class="fu">GetAssayData</span>(so, <span class="at">layer =</span> <span class="st">"counts"</span>)</span>
+<span id="cb163-2"><a href="#cb163-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-3"><a href="#cb163-3" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">SingleR</span>(<span class="at">test =</span> counts.singleR, <span class="at">ref =</span> ref, <span class="at">labels =</span> ref<span class="sc">$</span>label.main)</span>
+<span id="cb163-4"><a href="#cb163-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-5"><a href="#cb163-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pred<span class="sc">$</span>labels, <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> [1] "Oligodendrocytes" "Oligodendrocytes" "Oligodendrocytes" "Oligodendrocytes"
- [5] "T cells"          "Epithelial cells" "Oligodendrocytes" "Oligodendrocytes"
- [9] "Oligodendrocytes" "Neurons"         </code></pre>
+ [5] "Oligodendrocytes" "Oligodendrocytes" "Oligodendrocytes" "Oligodendrocytes"
+ [9] "Oligodendrocytes" "Oligodendrocytes"</code></pre>
 </div>
 </div>
 <p>Adding these labels to the Seurat object, and using them to plot again:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a>so<span class="sc">$</span>SingleR.labels <span class="ot">&lt;-</span> pred<span class="sc">$</span>labels</span>
-<span id="cb106-2"><a href="#cb106-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb106-3"><a href="#cb106-3" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(so, <span class="at">group.by =</span> <span class="st">"SingleR.labels"</span>, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb165"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a>so<span class="sc">$</span>SingleR.labels <span class="ot">&lt;-</span> pred<span class="sc">$</span>labels</span>
+<span id="cb165-2"><a href="#cb165-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-3"><a href="#cb165-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot with SingleR labels</span></span>
+<span id="cb165-4"><a href="#cb165-4" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(so, <span class="at">group.by =</span> <span class="st">"SingleR.labels"</span>, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -675,56 +847,56 @@ Attaching package: 'celldex'</code></pre>
 <p>These labels will give a first idea of what each of the clusters is representing. But the next step is a manual annotation based on canonical marker genes. Luckily, a list of marker genes to use can be found in Figure 4B of the supplemental information, a heatmap with marker genes that are overexpressed in each cluster!</p>
 <p>For example, I’ll look at the marker genes from a cluster the paper identified as astrocytes. The heatmap shows this cluster overexpressing the marker genes Aqp4, Acsbg1, and Slc1a2.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Aqp4"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb166"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb166-1"><a href="#cb166-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Aqp4"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Acsbg1"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb167"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb167-1"><a href="#cb167-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Acsbg1"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-20-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-17-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Slc1a2"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb168"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb168-1"><a href="#cb168-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Slc1a2"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-20-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-17-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>It looks like these marker genes are all clearly overexpressed in clusters 5, 17, 21, and 22. It will be fair to go ahead and label these clusters as my astrocytes.</p>
+<p>It looks like these marker genes are all clearly overexpressed in cluster 3. It will be fair to go ahead and label this clusters as my astrocytes.</p>
 <p>Now I can manually go through every gene from the heatmap and locate each of the same cell populations found in the paper’s UMAP (Supplemental info Fig.4A). It is a pretty long process and many of the in-between clusters will be left to my own judgment.</p>
 <p>It’s important to note that a lot of these genes are overexpressed in a certain cell type but also present elsewhere. For example the gene Ttr is a marker gene of epithelial cells (choroid plexus cells). Taking a look at its expression along with the other epithelial markers:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ttr"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb169"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb169-1"><a href="#cb169-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ttr"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ecrg4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb170"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb170-1"><a href="#cb170-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ecrg4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-21-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-18-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Enpp2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb171"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb171-1"><a href="#cb171-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Enpp2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-21-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-18-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -732,321 +904,312 @@ Attaching package: 'celldex'</code></pre>
 <p>It is overexpressed in the cluster labeled as epithelial cells, where the other epithelial cell markers are also present. But it’s also present in a few random places around the other cell types. This is normal and doesn’t mean those are epithelial cells too.</p>
 <p>The ones that I’m really uncertain of, I will leave as “Unknown.” When needed I’ll use the automatic annotations as backup. With this in mind let’s give it a try:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb113"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Astrocyte: Aqp4, Acsbg1, Slc1a2</span></span>
-<span id="cb113-2"><a href="#cb113-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Aqp4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb172"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb172-1"><a href="#cb172-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Astrocyte: Aqp4, Acsbg1, Slc1a2</span></span>
+<span id="cb172-2"><a href="#cb172-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Aqp4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Acsbg1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb173"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb173-1"><a href="#cb173-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Acsbg1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb115"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb115-1"><a href="#cb115-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Slc1a2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb174"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb174-1"><a href="#cb174-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Slc1a2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 5, 17, 22</span></span>
-<span id="cb116-2"><a href="#cb116-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb116-3"><a href="#cb116-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Choroid plexus cell: Ttr, Ecrg4, Enpp2</span></span>
-<span id="cb116-4"><a href="#cb116-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ttr"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb175"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 3</span></span>
+<span id="cb175-2"><a href="#cb175-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb175-3"><a href="#cb175-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Choroid plexus cell: Ttr, Ecrg4, Enpp2</span></span>
+<span id="cb175-4"><a href="#cb175-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ttr"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-4.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-4.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb117"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ecrg4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb176"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ecrg4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-5.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-5.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Enpp2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb177"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb177-1"><a href="#cb177-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Enpp2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-6.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-6.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb119"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 0, 18</span></span>
-<span id="cb119-2"><a href="#cb119-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb119-3"><a href="#cb119-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Endothelial cell: Flt1, Slco1a4, Mecom</span></span>
-<span id="cb119-4"><a href="#cb119-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Flt1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb178"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters 2, 4, 9, 12, 13, 15</span></span>
+<span id="cb178-2"><a href="#cb178-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-3"><a href="#cb178-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Endothelial cell: Flt1, Slco1a4, Mecom</span></span>
+<span id="cb178-4"><a href="#cb178-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Flt1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-7.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-7.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Slco1a4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb179"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb179-1"><a href="#cb179-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Slco1a4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-8.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-8.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb121"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb121-1"><a href="#cb121-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Mecom"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb180"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb180-1"><a href="#cb180-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Mecom"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-9.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-9.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb122"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 13</span></span>
-<span id="cb122-2"><a href="#cb122-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb122-3"><a href="#cb122-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Macrophage: F13a1, H2-Aa, Lyve1</span></span>
-<span id="cb122-4"><a href="#cb122-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"F13a1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb181"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb181-1"><a href="#cb181-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 14</span></span>
+<span id="cb181-2"><a href="#cb181-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb181-3"><a href="#cb181-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Macrophage: F13a1, H2-Aa, Lyve1</span></span>
+<span id="cb181-4"><a href="#cb181-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"F13a1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-10.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-10.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb123"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"H2-Aa"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb182"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb182-1"><a href="#cb182-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"H2-Aa"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-11.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-11.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb124"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Lyve1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb183"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb183-1"><a href="#cb183-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Lyve1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-12.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-12.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb125"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb125-1"><a href="#cb125-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 11, 20</span></span>
-<span id="cb125-2"><a href="#cb125-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb125-3"><a href="#cb125-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Microglia: P2ry12, Hexb, Trem2</span></span>
-<span id="cb125-4"><a href="#cb125-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"P2ry12"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb184"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb184-1"><a href="#cb184-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 11</span></span>
+<span id="cb184-2"><a href="#cb184-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb184-3"><a href="#cb184-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Microglia: P2ry12, Hexb, Trem2</span></span>
+<span id="cb184-4"><a href="#cb184-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"P2ry12"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-13.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-13.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Hexb"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb185"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb185-1"><a href="#cb185-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Hexb"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-14.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-14.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb127"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb127-1"><a href="#cb127-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Trem2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb186"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb186-1"><a href="#cb186-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Trem2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-15.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-15.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb128"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 1, 4, 8, 14, 19</span></span>
-<span id="cb128-2"><a href="#cb128-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb128-3"><a href="#cb128-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Neuron: Syt1, Snap25, Nrn1</span></span>
-<span id="cb128-4"><a href="#cb128-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Syt1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb187"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb187-1"><a href="#cb187-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters 0, 7</span></span>
+<span id="cb187-2"><a href="#cb187-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb187-3"><a href="#cb187-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Neuron: Syt1, Snap25, Nrn1</span></span>
+<span id="cb187-4"><a href="#cb187-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Syt1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-16.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-16.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb129"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb129-1"><a href="#cb129-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Snap25"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb188"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb188-1"><a href="#cb188-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Snap25"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-17.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-17.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb130"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Nrn1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb189"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb189-1"><a href="#cb189-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Nrn1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-18.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-18.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 10</span></span>
-<span id="cb131-2"><a href="#cb131-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb131-3"><a href="#cb131-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Oligodendrocyte: Ermn, Mog, Aspa</span></span>
-<span id="cb131-4"><a href="#cb131-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ermn"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb190"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb190-1"><a href="#cb190-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 10</span></span>
+<span id="cb190-2"><a href="#cb190-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb190-3"><a href="#cb190-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Oligodendrocyte: Ermn, Mog, Aspa</span></span>
+<span id="cb190-4"><a href="#cb190-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ermn"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-19.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-19.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Mog"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb191"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb191-1"><a href="#cb191-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Mog"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-20.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-20.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb133"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb133-1"><a href="#cb133-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Aspa"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb192"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb192-1"><a href="#cb192-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Aspa"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-21.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-21.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 2, 3, 6, 12, 15, 21, 26</span></span>
-<span id="cb134-2"><a href="#cb134-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb134-3"><a href="#cb134-3" aria-hidden="true" tabindex="-1"></a><span class="co"># OPC: Pdgfra, Cacng4, Vcan</span></span>
-<span id="cb134-4"><a href="#cb134-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Pdgfra"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb193"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb193-1"><a href="#cb193-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters 1, 5, 16</span></span>
+<span id="cb193-2"><a href="#cb193-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb193-3"><a href="#cb193-3" aria-hidden="true" tabindex="-1"></a><span class="co"># OPC: Pdgfra, Cacng4, Vcan</span></span>
+<span id="cb193-4"><a href="#cb193-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Pdgfra"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-22.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-22.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb135"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb135-1"><a href="#cb135-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cacng4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb194"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb194-1"><a href="#cb194-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cacng4"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-23.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-23.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Vcan"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb195"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb195-1"><a href="#cb195-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Vcan"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-24.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-24.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb137"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb137-1"><a href="#cb137-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 9</span></span>
-<span id="cb137-2"><a href="#cb137-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb137-3"><a href="#cb137-3" aria-hidden="true" tabindex="-1"></a><span class="co"># T cell: Cd3d, Cd3e, Cd3g</span></span>
-<span id="cb137-4"><a href="#cb137-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cd3d"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb196"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb196-1"><a href="#cb196-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters 8</span></span>
+<span id="cb196-2"><a href="#cb196-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb196-3"><a href="#cb196-3" aria-hidden="true" tabindex="-1"></a><span class="co"># T cell: Cd3d, Cd3e, Cd3g</span></span>
+<span id="cb196-4"><a href="#cb196-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cd3d"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-25.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-25.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cd3e"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb197"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb197-1"><a href="#cb197-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cd3e"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-26.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-26.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb139"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb139-1"><a href="#cb139-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cd3g"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb198"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb198-1"><a href="#cb198-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Cd3g"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-22-27.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-19-27.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters: 7, 23, 24, 25</span></span>
-<span id="cb140-2"><a href="#cb140-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb140-3"><a href="#cb140-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 16 - Nothing manual - SingleR says fibroblasts? Not mentioned in paper, drop?</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb199"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb199-1"><a href="#cb199-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clusters 6</span></span>
+<span id="cb199-2"><a href="#cb199-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb199-3"><a href="#cb199-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Other / too uncertain: Clusters 17, 18</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now I’ll create a vector of these manual cluster annotations:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb141"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb141-1"><a href="#cb141-1" aria-hidden="true" tabindex="-1"></a>cluster_annotations <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb141-2"><a href="#cb141-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"0"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
-<span id="cb141-3"><a href="#cb141-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"1"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
-<span id="cb141-4"><a href="#cb141-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
-<span id="cb141-5"><a href="#cb141-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
-<span id="cb141-6"><a href="#cb141-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"4"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
-<span id="cb141-7"><a href="#cb141-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"5"</span> <span class="ot">=</span> <span class="st">"Astrocyte"</span>,</span>
-<span id="cb141-8"><a href="#cb141-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"6"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
-<span id="cb141-9"><a href="#cb141-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"7"</span> <span class="ot">=</span> <span class="st">"T cell"</span>,</span>
-<span id="cb141-10"><a href="#cb141-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"8"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
-<span id="cb141-11"><a href="#cb141-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"9"</span> <span class="ot">=</span> <span class="st">"OPC"</span>,</span>
-<span id="cb141-12"><a href="#cb141-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"10"</span> <span class="ot">=</span> <span class="st">"Neuron"</span>,</span>
-<span id="cb141-13"><a href="#cb141-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"11"</span> <span class="ot">=</span> <span class="st">"Macrophage"</span>,</span>
-<span id="cb141-14"><a href="#cb141-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"12"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
-<span id="cb141-15"><a href="#cb141-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"13"</span> <span class="ot">=</span> <span class="st">"Endothelial cell"</span>,</span>
-<span id="cb141-16"><a href="#cb141-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"14"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
-<span id="cb141-17"><a href="#cb141-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"15"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
-<span id="cb141-18"><a href="#cb141-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"16"</span> <span class="ot">=</span> <span class="st">"Fibroblast"</span>,</span>
-<span id="cb141-19"><a href="#cb141-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"17"</span> <span class="ot">=</span> <span class="st">"Astrocyte"</span>,</span>
-<span id="cb141-20"><a href="#cb141-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"18"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
-<span id="cb141-21"><a href="#cb141-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"19"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
-<span id="cb141-22"><a href="#cb141-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"20"</span> <span class="ot">=</span> <span class="st">"Macrophage"</span>,</span>
-<span id="cb141-23"><a href="#cb141-23" aria-hidden="true" tabindex="-1"></a>  <span class="st">"21"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
-<span id="cb141-24"><a href="#cb141-24" aria-hidden="true" tabindex="-1"></a>  <span class="st">"22"</span> <span class="ot">=</span> <span class="st">"Astrocyte"</span>,</span>
-<span id="cb141-25"><a href="#cb141-25" aria-hidden="true" tabindex="-1"></a>  <span class="st">"23"</span> <span class="ot">=</span> <span class="st">"T cell"</span>,</span>
-<span id="cb141-26"><a href="#cb141-26" aria-hidden="true" tabindex="-1"></a>  <span class="st">"24"</span> <span class="ot">=</span> <span class="st">"T cell"</span>,</span>
-<span id="cb141-27"><a href="#cb141-27" aria-hidden="true" tabindex="-1"></a>  <span class="st">"25"</span> <span class="ot">=</span> <span class="st">"T cell"</span>,</span>
-<span id="cb141-28"><a href="#cb141-28" aria-hidden="true" tabindex="-1"></a>  <span class="st">"26"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span></span>
-<span id="cb141-29"><a href="#cb141-29" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb200"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb200-1"><a href="#cb200-1" aria-hidden="true" tabindex="-1"></a>cluster_annotations <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb200-2"><a href="#cb200-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"0"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
+<span id="cb200-3"><a href="#cb200-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"1"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
+<span id="cb200-4"><a href="#cb200-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
+<span id="cb200-5"><a href="#cb200-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"Astrocyte"</span>,</span>
+<span id="cb200-6"><a href="#cb200-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"4"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
+<span id="cb200-7"><a href="#cb200-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"5"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
+<span id="cb200-8"><a href="#cb200-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"6"</span> <span class="ot">=</span> <span class="st">"T cell"</span>,</span>
+<span id="cb200-9"><a href="#cb200-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"7"</span> <span class="ot">=</span> <span class="st">"Microglia"</span>,</span>
+<span id="cb200-10"><a href="#cb200-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"8"</span> <span class="ot">=</span> <span class="st">"OPC"</span>,</span>
+<span id="cb200-11"><a href="#cb200-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"9"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
+<span id="cb200-12"><a href="#cb200-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"10"</span> <span class="ot">=</span> <span class="st">"Neuron"</span>,</span>
+<span id="cb200-13"><a href="#cb200-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"11"</span> <span class="ot">=</span> <span class="st">"Macrophage"</span>,</span>
+<span id="cb200-14"><a href="#cb200-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"12"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
+<span id="cb200-15"><a href="#cb200-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"13"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
+<span id="cb200-16"><a href="#cb200-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"14"</span> <span class="ot">=</span> <span class="st">"Endothelial cell"</span>,</span>
+<span id="cb200-17"><a href="#cb200-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"15"</span> <span class="ot">=</span> <span class="st">"Choroid plexus cell"</span>,</span>
+<span id="cb200-18"><a href="#cb200-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"16"</span> <span class="ot">=</span> <span class="st">"Oligodendrocyte"</span>,</span>
+<span id="cb200-19"><a href="#cb200-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"17"</span> <span class="ot">=</span> <span class="st">"Unknown"</span>,</span>
+<span id="cb200-20"><a href="#cb200-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"18"</span> <span class="ot">=</span> <span class="st">"Unknown"</span></span>
+<span id="cb200-21"><a href="#cb200-21" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Time to plot with these new cell types, and save the plot as a file:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb142"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb142-1"><a href="#cb142-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating a column with the identity of each cell under manual annotations</span></span>
-<span id="cb142-2"><a href="#cb142-2" aria-hidden="true" tabindex="-1"></a>so<span class="sc">@</span>meta.data<span class="sc">$</span>cell_type <span class="ot">&lt;-</span> cluster_annotations[<span class="fu">as.character</span>(so<span class="sc">$</span>seurat_clusters)]</span>
-<span id="cb142-3"><a href="#cb142-3" aria-hidden="true" tabindex="-1"></a><span class="co"># so@meta.data$cell_type &lt;-: Create a new column in Seurat metadata called cell_type</span></span>
-<span id="cb142-4"><a href="#cb142-4" aria-hidden="true" tabindex="-1"></a><span class="co"># as.character(so$seurat_clusters): Get cluster number for each cell</span></span>
-<span id="cb142-5"><a href="#cb142-5" aria-hidden="true" tabindex="-1"></a><span class="co"># cluster_annotations[]: Match each cluster number with its label in the new vector</span></span>
-<span id="cb142-6"><a href="#cb142-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb142-7"><a href="#cb142-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Use cell_type as the new identity</span></span>
-<span id="cb142-8"><a href="#cb142-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(so) <span class="ot">&lt;-</span> <span class="st">"cell_type"</span></span>
-<span id="cb142-9"><a href="#cb142-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Idents(): Where cell idenities are stored in the Seurat object</span></span>
-<span id="cb142-10"><a href="#cb142-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb142-11"><a href="#cb142-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot UMAP with new labels</span></span>
-<span id="cb142-12"><a href="#cb142-12" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(so, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb201"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb201-1"><a href="#cb201-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating a column with the identity of each cell under manual annotations</span></span>
+<span id="cb201-2"><a href="#cb201-2" aria-hidden="true" tabindex="-1"></a>so<span class="sc">@</span>meta.data<span class="sc">$</span>cell_type <span class="ot">&lt;-</span> cluster_annotations[<span class="fu">as.character</span>(so<span class="sc">$</span>seurat_clusters)]</span>
+<span id="cb201-3"><a href="#cb201-3" aria-hidden="true" tabindex="-1"></a><span class="co"># so@meta.data$cell_type &lt;-: Create a new column in Seurat metadata called cell_type</span></span>
+<span id="cb201-4"><a href="#cb201-4" aria-hidden="true" tabindex="-1"></a><span class="co"># as.character(so$seurat_clusters): Get cluster number for each cell</span></span>
+<span id="cb201-5"><a href="#cb201-5" aria-hidden="true" tabindex="-1"></a><span class="co"># cluster_annotations[]: Match each cluster number with its label in the new vector</span></span>
+<span id="cb201-6"><a href="#cb201-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb201-7"><a href="#cb201-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Use cell_type as the new identity</span></span>
+<span id="cb201-8"><a href="#cb201-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(so) <span class="ot">&lt;-</span> <span class="st">"cell_type"</span></span>
+<span id="cb201-9"><a href="#cb201-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Idents(): Where cell idenities are stored in the Seurat object</span></span>
+<span id="cb201-10"><a href="#cb201-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb201-11"><a href="#cb201-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove uncertain clusters (17+18) and plot with new labels</span></span>
+<span id="cb201-12"><a href="#cb201-12" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">subset</span>(so, cell_type <span class="sc">!=</span> <span class="st">"Unknown"</span>)</span>
+<span id="cb201-13"><a href="#cb201-13" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(so, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb143"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb143-1"><a href="#cb143-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Save as a pdf</span></span>
-<span id="cb143-2"><a href="#cb143-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"analysis/umap_annotated.pdf"</span>, <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">6</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Now I can compare the expression of one gene across treatment groups, and see what populations it is in! This is the start of recreating the paper’s RNA-seq analysis.</p>
+<p>Now I can compare the expression of one gene across treatment groups, and see what populations it is in! This will be the foundation for some other analyses I want to try out.</p>
 </section>
 </section>
-<section id="ptpn1-expression-in-microglia" class="level2">
-<h2 class="anchored" data-anchor-id="ptpn1-expression-in-microglia">Ptpn1 Expression in Microglia</h2>
-<p>From the paper:</p>
+<section id="ptpn1-expression" class="level2">
+<h2 class="anchored" data-anchor-id="ptpn1-expression">Ptpn1 Expression</h2>
+<p>Working through the description of RNA-seq analysis:</p>
 <blockquote class="blockquote">
 <p><em>“After quality control and filtering, a total of 31,740 cells across two genotypes were arranged by uniform manifold approximation and projection (UMAP) for visualization.”</em></p>
 </blockquote>
 <p>Double checking how many cells I have been using:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb144"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ncol</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb202"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb202-1"><a href="#cb202-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ncol</span>(so)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 35017</code></pre>
+<pre><code>[1] 34629</code></pre>
 </div>
 </div>
 <p>Pretty close, maybe their filters are a little more strict. Maybe they also got rid of some of the trickier clusters, like that fibroblasts one. Let’s continue:</p>
@@ -1057,9 +1220,42 @@ Attaching package: 'celldex'</code></pre>
 <blockquote class="blockquote">
 <p><em>“Then, we investigated the expression level of PTP1B across all cell types in the brain. Interestingly, Ptpn1, the gene that encodes PTP1B, was found to be highly expressed in immune cells, including microglia, macrophages, and T cells (Fig. 3B), suggesting a potential role in brain immune regulation.”</em></p>
 </blockquote>
-<p>Time to see where Ptpn1 is expressed in my samples. It had better be different between the two treatment groups because it’s knocked out. But let’s also see which cell types:</p>
+<p>Time to see where Ptpn1 is expressed in my samples. It had better at least be different between the two treatment groups because it’s knocked out. But let’s also see which cell types show the greatest difference:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb146"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ptpn1"</span>, <span class="at">split.by =</span> <span class="st">"orig.ident"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb204"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb204-1"><a href="#cb204-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(so, <span class="at">features =</span> <span class="st">"Ptpn1"</span>, <span class="at">split.by =</span> <span class="st">"orig.ident"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This feature plot shows the Ptpn1 knockout very clearly, as well as higher expression for the AD group in immune cells (microglia and macrophage, mainly).</p>
+<p>These results are displayed in the paper as a violin plot with Ptpn1 expression in the various cell types for AD cells. To recreate this figure for comparison, the first thing to do is create a subset with this group, and reassign the manual cell type annotations.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb205"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb205-1"><a href="#cb205-1" aria-hidden="true" tabindex="-1"></a>so_ad <span class="ot">&lt;-</span> <span class="fu">subset</span>(so, <span class="at">subset =</span> orig.ident <span class="sc">==</span> <span class="st">"AD"</span>)</span>
+<span id="cb205-2"><a href="#cb205-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(so_ad) <span class="ot">&lt;-</span> <span class="st">"cell_type"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>First I have to create a list of cell types in the same order as the paper’s figure (to make comparison easier) and remove any cell types that the paper was not interested in:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb206"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb206-1"><a href="#cb206-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vector of the cell type names in order</span></span>
+<span id="cb206-2"><a href="#cb206-2" aria-hidden="true" tabindex="-1"></a>cell_order <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Choroid plexus cell"</span>, <span class="st">"Neuron"</span>, <span class="st">"Microglia"</span>, <span class="st">"Oligodendrocyte"</span>, <span class="st">"Astrocyte"</span>, <span class="st">"T cell"</span>, <span class="st">"OPC"</span>, <span class="st">"Macrophage"</span>, <span class="st">"Endothelial cell"</span>)</span>
+<span id="cb206-3"><a href="#cb206-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb206-4"><a href="#cb206-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove all cell types that aren't in the paper's analysis</span></span>
+<span id="cb206-5"><a href="#cb206-5" aria-hidden="true" tabindex="-1"></a>so_ad <span class="ot">&lt;-</span> <span class="fu">subset</span>(so_ad, cell_type <span class="sc">%in%</span> cell_order)</span>
+<span id="cb206-6"><a href="#cb206-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb206-7"><a href="#cb206-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Set the cell type names</span></span>
+<span id="cb206-8"><a href="#cb206-8" aria-hidden="true" tabindex="-1"></a>so_ad<span class="sc">$</span>cell_type <span class="ot">&lt;-</span> <span class="fu">factor</span>(so_ad<span class="sc">$</span>cell_type, <span class="at">levels =</span> cell_order)</span>
+<span id="cb206-9"><a href="#cb206-9" aria-hidden="true" tabindex="-1"></a><span class="co"># factor(): Group the data into fixed categories</span></span>
+<span id="cb206-10"><a href="#cb206-10" aria-hidden="true" tabindex="-1"></a><span class="co"># levels = cell_order: List of categories to use (in order)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Now I can create the violin plot:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb207"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb207-1"><a href="#cb207-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(so_ad, <span class="at">features =</span> <span class="st">"Ptpn1"</span>, <span class="at">pt.size =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb207-2"><a href="#cb207-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Cell Types"</span>, <span class="at">y =</span> <span class="st">"Ptpn1 Expression"</span>) <span class="sc">+</span></span>
+<span id="cb207-3"><a href="#cb207-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb207-4"><a href="#cb207-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(<span class="at">fun =</span> median, <span class="at">geom =</span> <span class="st">"point"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -1067,12 +1263,608 @@ Attaching package: 'celldex'</code></pre>
 </figure>
 </div>
 </div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb208"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb208-1"><a href="#cb208-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pt.size = 0: Don't show individual data points</span></span>
+<span id="cb208-2"><a href="#cb208-2" aria-hidden="true" tabindex="-1"></a><span class="co"># stat_summary(): Compute and plot a statistic for each group</span></span>
+<span id="cb208-3"><a href="#cb208-3" aria-hidden="true" tabindex="-1"></a><span class="co"># fun = median: Plot the median for each group</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Can see the knockout very clearly, looks good! And it is more expressed in microglia!</p>
+<p>It looks very similar to the actual results! Microglia and macrophage have the highest levels of Ptpn1 expression, with microglia slightly higher. T cells are the next behind. This single cell data shows Ptpn1 being highly expressed in immune cells.</p>
 </section>
 <section id="microglia-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="microglia-analysis">Microglia Analysis</h2>
-<p>Since this is an Alzheimer’s disease paper, the main focus is the microglia. For further analysis they split the microglia into several subtypes and checked out the differences in gene expression there.</p>
+<p>The microglia are the brain’s primary immune cells, they play the most crucial role in Alzheimer’s disease and are the focus of this paper. To continue the analysis they split the microglia into several subtypes and checked out the differences in gene expression there.</p>
+<p>To follow in these footsteps, I’ll create a subset of the data containing only cells that were annotated as microglia, and then redo the analysis from above.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb209"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb209-1"><a href="#cb209-1" aria-hidden="true" tabindex="-1"></a><span class="co"># New subset of microglia</span></span>
+<span id="cb209-2"><a href="#cb209-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">subset</span>(so, <span class="at">idents =</span> <span class="st">"Microglia"</span>)</span>
+<span id="cb209-3"><a href="#cb209-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb209-4"><a href="#cb209-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Normalization</span></span>
+<span id="cb209-5"><a href="#cb209-5" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">SCTransform</span>(microglia, <span class="at">vars.to.regress =</span> <span class="st">"percent.mt"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running SCTransform on assay: RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 13059 by 935</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 935 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 80 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 13059 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 13059 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 9.917348 secs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 14197 by 1724</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 1724 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 42 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 14197 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 14197 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 11.98329 secs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 15487 by 2713</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 2713 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 37 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 15487 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 15487 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 15.33999 secs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>vst.flavor='v2' set. Using model with fixed slope and excluding poisson genes.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cell attributes from input UMI matrix: log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variance stabilizing transformation of count matrix of size 15794 by 3737</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Model formula is y ~ log_umi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Get Negative Binomial regression parameters per gene</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using 2000 genes, 3737 cells</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 42 outliers - those will be ignored in fitting/regularization step</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Second step: Get residuals using fitted parameters for 15794 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing corrected count matrix for 15794 genes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating gene attributes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Wall clock passed: Time difference of 18.96094 secs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Determine variable features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out percent.mt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Place corrected count matrix in counts slot</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Different cells and/or features from existing assay SCT</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Set default assay to SCT</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb273"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb273-1"><a href="#cb273-1" aria-hidden="true" tabindex="-1"></a><span class="co"># PCA</span></span>
+<span id="cb273-2"><a href="#cb273-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(microglia, <span class="at">assay =</span> <span class="st">"SCT"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in PrepDR(object = object, features = features, verbose = verbose): The
+following 131 features requested have not been scaled (running reduction
+without them): Ttr, Mal, Erbb4, Pex5l, Mobp, Prickle2, Nlgn1, Cldn11, Npas3,
+Aspa, Ptn, Kirrel3, Ncam2, Ermn, Gpnmb, Ank3, Tmem178b, Grid2, Stmn4, Cxcl9,
+Ano4, Fez1, Hmmr, Gm16168, Luzp2, Bcas1, Mog, Gm41335, Il33, Adgrb3, Opalin,
+Nusap1, Tspan2, Unc5c, Hecw2, Sparcl1, Esco2, Robo1, Pak7, Ntrk2, Syn2, Ecrg4,
+Sostdc1, Igfbp2, Kl, Prlr, Fxyd1, 2900040C04Rik, Atp1b1, Kcnq3, Rbp1, Calml4,
+Folr1, Opcml, Grm7, Trpm3, Ccnd2, Ppp1r14a, Sorcs1, Spint2, Il1rapl1, Igf2,
+Ugt8a, Sez6l2, C030029H02Rik, Dscaml1, Gria2, Mdk, Lbp, Fbxl7, Clic6, Tmtc2,
+Pcp4l1, Dcc, Spock3, Slc16a2, Anln, Olig1, Slc25a21, G530011O06Rik, Cmtm5,
+Gpm6a, Cntn4, Cttnbp2, Gpr37, Ppp1r1b, Atp2b3, Sox9, Cd59a, Cox8b, Slc7a11,
+Fras1, F5, Erc2, Id3, Otx2, Map2, Hepacam, Fa2h, Htr2c, Slc4a4, Tnr, Gria4,
+Lama2, Ace, Hmgb3, Cntn2, Ano3, Efnb3, Pllp, Slc4a10, Nol4, Igkc, Cntn1, Ndrg1,
+Neil3, Nrxn3, Slco1c1, Gjc3, Itm2a, Rrm2, Cdh10, Brinp2, Sox10, 9530062K07Rik,
+Emb, Spock2, Mid1, Mrc1, Serpinb1c, Fkbp6</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>PC_ 1 
+Positive:  Csmd3, Malat1, Elmo1, Nav3, Cacnb2, Nav2, Srgap2, Tanc2, Bank1, Dock4 
+       Slc8a1, Ldlrad4, Plxdc2, Fhit, Zfhx3, Fchsd2, Agmo, Maml3, 4933406I18Rik, Rapgef5 
+       Chd9, Dock10, Plxna4, Tgfbr1, Numb, Pde3b, Ssh2, Ophn1, Slc9a9, Pag1 
+Negative:  Apoe, Cst7, Fth1, Ftl1, Lyz2, Tyrobp, Fau, Rps12, Ctsd, Cd74 
+       Rps24, Rpl23, Tpt1, Rplp1, Rpl41, Rpl21, Eef1a1, Rpl13, Rpl19, Rpl32 
+       Rps26, Rpl27a, Rps20, Rps27a, Cd52, Rps4x, Rps16, Rps5, Tmsb4x, Rpl37a 
+PC_ 2 
+Positive:  Fau, Tyrobp, Rps12, Rps29, Rps24, Rpl23, Rpl27a, Ftl1, Rplp1, Rps4x 
+       Rps21, Rps9, Rpl13, Rpl39, Rpl30, Rps11, Rpl12, Rpl18a, Rpl37a, Rpl37 
+       Rpl21, Tmsb4x, Rps14, Rpl32, Rps28, Rps27a, Rpl10, Rpl10a, Rpl35a, Rpl26 
+Negative:  Enpp2, Ptgds, Dbi, Chchd10, Prnp, Car2, Clu, Mt3, Cryab, Pcdh9 
+       Magi2, Plp1, Pde4b, Aplp1, Mbp, Ptprd, Nkain2, Tmeff2, Edil3, Slc24a2 
+       Gpm6b, Lrp1b, Frmd5, Stk39, Zfp536, Slc22a17, St18, Ncam1, Mapt, Sox2ot 
+PC_ 3 
+Positive:  Apoe, Fgf13, Prkg1, Ank, Myo1e, Etl4, Gm15155, Cst7, Apbb2, Cd74 
+       Ptchd1, Ccl4, Lpl, Cadm1, Xylt1, Acaca, Igf1, Cacna1a, Tmem163, Ccl3 
+       Sox5, Myo5a, Lyz2, Lilrb4a, Alcam, Gas7, Cacnb4, Arhgap24, Csf1, Colec12 
+Negative:  Bank1, Enpp2, Chchd10, Tmem119, Clu, Mt3, Cacnb2, Crybb1, Tmsb4x, Ecscr 
+       Ccr5, Lst1, Ndufa4, Dbi, Ltc4s, P2ry12, C1qb, Rplp1, Ctnnd2, Atp5g1 
+       Alox5ap, Zfhx3, Nhs, Txnip, Cdkn1c, Gpx4, Rtn1, Tubb4b, Pnp, Actb 
+PC_ 4 
+Positive:  Pcdh9, Magi2, Pde4b, Nkain2, Plp1, Ptprd, Tmeff2, Slc24a2, Edil3, St18 
+       Lrp1b, Frmd5, Mbp, Gpm6b, Sox2ot, Mapt, Ncam1, St6galnac3, Grm3, Zfp536 
+       Prr5l, Mag, Dnm3, Mdga2, Lrrc4c, Dlg2, Sept4, Phlpp1, Gnao1, Ppp1r16b 
+Negative:  Chchd10, Clu, Enpp2, Mt3, Dbi, Slc22a17, Atp5g1, Cdkn1c, Ndufa4, Kcnj13 
+       Bsg, Tubb4b, Hemk1, Hist1h2bc, Stk39, Ezr, S100a1, Cpe, Col9a3, Cox6c 
+       Ndufa11, Map1lc3a, Uqcr11, Ndufb10, Gpx4, Uqcr10, Atp5md, Cab39l, Pltp, Pebp1 
+PC_ 5 
+Positive:  Apoe, Fgf13, Ank, Prkg1, Etl4, Myo1e, Chchd10, Plxdc2, Arhgap24, Cadm1 
+       Lyz2, Enpp2, Cst7, Apbb2, Fnip2, Ptchd1, Igf1, Snx24, Ccl6, Gm15155 
+       Clu, Fat3, Mt3, St6gal1, Colec12, Kcnma1, Ctsd, Cacna1a, Xylt1, Lpl 
+Negative:  Ifit3, Ifit2, Ccl12, Isg15, Ifi204, Herc6, Ifit1, Oasl2, Slfn5, Parp14 
+       Ifit3b, Gm4951, Ifi207, Ifitm3, Usp18, Stat1, Rnf213, Rsad2, Ifi209, Iigp1 
+       Ddx60, Sp100, Trim30a, Ifi206, Irf7, Phf11d, Ifi213, A330040F15Rik, Phf11b, Epsti1 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb276"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb276-1"><a href="#cb276-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Batch correction</span></span>
+<span id="cb276-2"><a href="#cb276-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">RunHarmony</span>(microglia, <span class="at">group.by.vars =</span> <span class="st">"orig.ident"</span>, <span class="at">assay.use =</span> <span class="st">"SCT"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Transposing data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Initializing state using k-means centroids initialization</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 1/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 2/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony 3/10</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Harmony converged after 3 iterations</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb283"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb283-1"><a href="#cb283-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Elbow plot</span></span>
+<span id="cb283-2"><a href="#cb283-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ElbowPlot</span>(microglia)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Small intermission here - it looks like 10 PCs is best for the elbow plot this time.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb284"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb284-1"><a href="#cb284-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clustering the cells</span></span>
+<span id="cb284-2"><a href="#cb284-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(microglia, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing nearest neighbor graph</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing SNN</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb287"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb287-1"><a href="#cb287-1" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">FindClusters</span>(microglia, <span class="at">resolution =</span> <span class="fl">0.5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 9109
+Number of edges: 289139
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.8561
+Number of communities: 11
+Elapsed time: 1 seconds</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb289"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb289-1"><a href="#cb289-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Running UMAP</span></span>
+<span id="cb289-2"><a href="#cb289-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(microglia, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:09:16 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:09:16 Read 9109 rows and found 10 numeric columns</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:09:16 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:09:16 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>0%   10   20   30   40   50   60   70   80   90   100%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[----|----|----|----|----|----|----|----|----|----|</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>**************************************************|
+14:09:17 Writing NN index file to temp file /var/folders/77/q8ngnfb94_bfvxjk__b52rvh0000gn/T//RtmpG604sX/file9ae73a9fa53
+14:09:17 Searching Annoy index using 1 thread, search_k = 3000
+14:09:20 Annoy recall = 100%
+14:09:21 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+14:09:23 Initializing from normalized Laplacian + noise (using RSpectra)
+14:09:23 Commencing optimization for 500 epochs, with 378970 positive edges
+14:09:23 Using rng type: pcg
+14:09:38 Optimization finished</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb297"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb297-1"><a href="#cb297-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb297-2"><a href="#cb297-2" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(microglia, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Compared to the actual result there is way too much going on in this plot. Since this is a smaller population of cells, it makes sense to try a lower resolution for creating the clusters.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb298"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb298-1"><a href="#cb298-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clustering the cells - lower resolution</span></span>
+<span id="cb298-2"><a href="#cb298-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">FindClusters</span>(microglia, <span class="at">resolution =</span> <span class="fl">0.1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 9109
+Number of edges: 289139
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9362
+Number of communities: 5
+Elapsed time: 1 seconds</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb300"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb300-1"><a href="#cb300-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Running UMAP</span></span>
+<span id="cb300-2"><a href="#cb300-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(microglia, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:10:35 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:10:35 Read 9109 rows and found 10 numeric columns</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:10:35 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>14:10:35 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>0%   10   20   30   40   50   60   70   80   90   100%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[----|----|----|----|----|----|----|----|----|----|</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>**************************************************|
+14:10:36 Writing NN index file to temp file /var/folders/77/q8ngnfb94_bfvxjk__b52rvh0000gn/T//RtmpG604sX/file9ae7635eb20f
+14:10:36 Searching Annoy index using 1 thread, search_k = 3000
+14:10:40 Annoy recall = 100%
+14:10:40 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+14:10:42 Initializing from normalized Laplacian + noise (using RSpectra)
+14:10:42 Commencing optimization for 500 epochs, with 378970 positive edges
+14:10:42 Using rng type: pcg
+14:10:57 Optimization finished</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb308"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb308-1"><a href="#cb308-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb308-2"><a href="#cb308-2" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(microglia, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-29-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>That looks much better! But there is still a rogue cluster way to the left. It’s likely that this is other cells that ended up annotated as microglia or in the same cluster. Let’s see their genes:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb309"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb309-1"><a href="#cb309-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DefaultAssay</span>(microglia) <span class="ot">&lt;-</span> <span class="st">"SCT"</span></span>
+<span id="cb309-2"><a href="#cb309-2" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">PrepSCTFindMarkers</span>(microglia)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Found 4 SCT models. Recorrecting SCT counts using minimum median counts: 4643</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb311"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb311-1"><a href="#cb311-1" aria-hidden="true" tabindex="-1"></a>cluster3.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(microglia, <span class="at">ident.1 =</span> <span class="st">"3"</span>)</span>
+<span id="cb311-2"><a href="#cb311-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster3.markers, <span class="dv">20</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               p_val avg_log2FC pct.1 pct.2    p_val_adj
+Ifit3   0.000000e+00   6.054540 0.925 0.058  0.00000e+00
+Ifit2   0.000000e+00   5.706953 0.833 0.052  0.00000e+00
+Isg15   0.000000e+00   5.169924 0.823 0.057  0.00000e+00
+Ifi204  0.000000e+00   4.298459 0.882 0.136  0.00000e+00
+Slfn5   0.000000e+00   4.751882 0.797 0.063  0.00000e+00
+Oasl2   0.000000e+00   4.404051 0.803 0.087  0.00000e+00
+Ifit1   0.000000e+00   6.169781 0.672 0.023  0.00000e+00
+Usp18   0.000000e+00   4.250321 0.718 0.082  0.00000e+00
+Ifi209  0.000000e+00   4.350632 0.695 0.061  0.00000e+00
+Ifit3b  0.000000e+00   6.433155 0.633 0.014  0.00000e+00
+Ifi207  0.000000e+00   4.479954 0.679 0.066  0.00000e+00
+Irf7    0.000000e+00   4.646838 0.580 0.036  0.00000e+00
+Ifi206  0.000000e+00   5.403819 0.518 0.018  0.00000e+00
+Zbp1    0.000000e+00   4.434944 0.525 0.036  0.00000e+00
+Ifi213  0.000000e+00   5.066595 0.426 0.021  0.00000e+00
+Rsad2   0.000000e+00   7.180983 0.397 0.007  0.00000e+00
+Iigp1   0.000000e+00   5.869657 0.403 0.014  0.00000e+00
+Ifi211  0.000000e+00   5.820646 0.390 0.012  0.00000e+00
+Oasl1   0.000000e+00   6.593210 0.370 0.006  0.00000e+00
+Phf11a 2.419417e-273   4.481755 0.390 0.021 4.03341e-269</code></pre>
+</div>
+</div>
+<p>None of the markers I used for microglia are actually listed here, but there is Ecrg4 which was a marker for choroid plexus cells. It really looks like this cluster just happened to get mixed in. Checking the other rogue cluster:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb313"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb313-1"><a href="#cb313-1" aria-hidden="true" tabindex="-1"></a>cluster4.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(microglia, <span class="at">ident.1 =</span> <span class="st">"4"</span>)</span>
+<span id="cb313-2"><a href="#cb313-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster4.markers, <span class="dv">20</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        p_val avg_log2FC pct.1 pct.2 p_val_adj
+Stmn1       0   7.181013 0.988 0.050         0
+Top2a       0   9.988072 0.845 0.002         0
+Birc5       0   9.722303 0.798 0.003         0
+Mki67       0   9.738570 0.774 0.002         0
+Prc1        0   8.889168 0.762 0.003         0
+Lockd       0   9.538166 0.726 0.002         0
+Cdca8       0   8.079969 0.726 0.005         0
+Cks1b       0   6.033957 0.738 0.023         0
+Tpx2        0   8.304342 0.702 0.005         0
+Pclaf       0   8.359578 0.702 0.007         0
+Cenpf       0   7.035739 0.702 0.019         0
+Knl1        0   8.631917 0.631 0.003         0
+Spc24       0   9.654284 0.619 0.001         0
+Cenpa       0   6.657959 0.631 0.017         0
+Racgap1     0   7.255858 0.619 0.007         0
+Ube2c       0   9.041125 0.607 0.003         0
+Pbk         0  10.747394 0.595 0.000         0
+Kif11       0   9.870776 0.583 0.001         0
+Ckap2l      0   8.148492 0.560 0.004         0
+Cenpe       0   7.645514 0.548 0.006         0</code></pre>
+</div>
+</div>
+<p>It also contains none of the microglia marker genes. I will go ahead and remove these, which is likely what was done in the paper as well.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb315"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb315-1"><a href="#cb315-1" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">subset</span>(microglia, <span class="at">idents =</span> <span class="fu">c</span>(<span class="st">"0"</span>, <span class="st">"1"</span>, <span class="st">"2"</span>))</span>
+<span id="cb315-2"><a href="#cb315-2" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(microglia, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>And there’s one cell that’s a massive outlier on the UMAP. It could be a damaged cell, or caught in a transitional state or something like that. It’s compressing the whole rest of my plot, so I will need to remove that as well.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb316"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb316-1"><a href="#cb316-1" aria-hidden="true" tabindex="-1"></a>microglia <span class="ot">&lt;-</span> <span class="fu">subset</span>(microglia, <span class="at">subset =</span> umap_1 <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">10</span>)</span>
+<span id="cb316-2"><a href="#cb316-2" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(microglia, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-33-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>New clusters look good!</p>
+<blockquote class="blockquote">
+<p>This revealed three distinct subclusters: homeostatic microglia (Homeostatic; expressing markers: Fcrls, Tmem119 and P2ry12), disease-associated microglia (DAM; expressing markers: Axl, Ctsl, and Trem2) and interferon-responsive microglia (IFN; expressing markers: Oasl2, Stat1, and Irf7).</p>
+</blockquote>
+<p>Figuring out which clusters correspond to each of these subpopulations will be similar to my manual annotations for all cell types:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb317"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb317-1"><a href="#cb317-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Homeostatic microglia: Fcrls, Tmem119, P2ry12</span></span>
+<span id="cb317-2"><a href="#cb317-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Fcrls"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb318"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb318-1"><a href="#cb318-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Tmem119"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb319"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb319-1"><a href="#cb319-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"P2ry12"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb320"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb320-1"><a href="#cb320-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 0</span></span>
+<span id="cb320-2"><a href="#cb320-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb320-3"><a href="#cb320-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Disease-associated microglia: Axl, Ctsl, Trem2</span></span>
+<span id="cb320-4"><a href="#cb320-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Axl"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb321"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb321-1"><a href="#cb321-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Ctsl"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb322"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb322-1"><a href="#cb322-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Trem2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb323"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb323-1"><a href="#cb323-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 1</span></span>
+<span id="cb323-2"><a href="#cb323-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb323-3"><a href="#cb323-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Interferon-responsive microglia: Oasl2, Stat1, and Irf7</span></span>
+<span id="cb323-4"><a href="#cb323-4" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Oasl2"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb324"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb324-1"><a href="#cb324-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Stat1"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb325"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb325-1"><a href="#cb325-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(microglia, <span class="at">features =</span> <span class="st">"Irf7"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-34-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb326"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb326-1"><a href="#cb326-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster 2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Labeling the clusters based on this investigation, and plotting the result:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb327"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb327-1"><a href="#cb327-1" aria-hidden="true" tabindex="-1"></a>microglia_annotations <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb327-2"><a href="#cb327-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"0"</span> <span class="ot">=</span> <span class="st">"Homeostatic"</span>,</span>
+<span id="cb327-3"><a href="#cb327-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"1"</span> <span class="ot">=</span> <span class="st">"DAM"</span>,</span>
+<span id="cb327-4"><a href="#cb327-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"IFN"</span></span>
+<span id="cb327-5"><a href="#cb327-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb327-6"><a href="#cb327-6" aria-hidden="true" tabindex="-1"></a>microglia<span class="sc">@</span>meta.data<span class="sc">$</span>cell_type <span class="ot">&lt;-</span> microglia_annotations[<span class="fu">as.character</span>(microglia<span class="sc">$</span>seurat_clusters)]</span>
+<span id="cb327-7"><a href="#cb327-7" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(microglia) <span class="ot">&lt;-</span> <span class="st">"cell_type"</span></span>
+<span id="cb327-8"><a href="#cb327-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb327-9"><a href="#cb327-9" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(microglia, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ptp1b_seurat_final_files/figure-html/unnamed-chunk-35-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Now I have clustered the microglia and can compare gene expression between these populations!</p>
 </section>
 
 </main>

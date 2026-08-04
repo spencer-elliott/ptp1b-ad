@@ -11,7 +11,7 @@ knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results/cellbend
 seed <- readRDS("~/ptp1b_ad/results/original_seed.rds")
 assign(".Random.seed", seed, envir = .GlobalEnv)
 # Cache results so huge analysis doesn't have to be rerun
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = TRUE, cache.lazy = FALSE)
 ```
 
 ## Seurat Analysis for All Samples
@@ -21,7 +21,7 @@ Running CellRanger resulted in a feature-barcode matrix for all four samples, an
 This will open the door to comparing expression in different cell types across the two treatment groups!
 
 Once again this analysis will heavily follow the Seurat tutorial found here: <https://satijalab.org/seurat/articles/pbmc3k_tutorial.html>\
-Also remember that for many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd!
+Also remember that for many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd.
 
 ### Creating the merged Seurat object
 
@@ -114,7 +114,7 @@ so <- subset(so, subset = nFeature_RNA > 500 &
                        nFeature_RNA < 6000 & 
                        nCount_RNA > 1000 &
                        nCount_RNA < 30000 & 
-                       percent.mt < 20)
+                       percent.mt < 10)
 ```
 
 ### Normalization, Variable Genes, and Scaling
@@ -188,8 +188,6 @@ so$SingleR.labels <- pred$labels
 
 # Plot with SingleR labels
 DimPlot(so, group.by = "SingleR.labels", reduction = "umap", label = TRUE)
-# Save as a pdf
-ggsave("analysis/umap_annotated_singleR.pdf", width = 8, height = 6)
 ```
 
 These labels will give a first idea of what each of the clusters is representing. But the next step is a manual annotation based on canonical marker genes. Luckily, a list of marker genes to use can be found in Figure 4B of the supplemental information, a heatmap with marker genes that are overexpressed in each cluster!
@@ -318,9 +316,6 @@ Idents(so) <- "cell_type"
 # Remove uncertain clusters (17+18) and plot with new labels
 so <- subset(so, cell_type != "Unknown")
 DimPlot(so, reduction = "umap", label = TRUE)
-
-# Save as a pdf
-ggsave("analysis/umap_annotated_manual.pdf", width = 8, height = 6)
 ```
 
 Now I can compare the expression of one gene across treatment groups, and see what populations it is in! This will be the foundation for some other analyses I want to try out.
@@ -400,20 +395,16 @@ To follow in these footsteps, I'll create a subset of the data containing only c
 microglia <- subset(so, idents = "Microglia")
 
 # Normalization
-microglia <- NormalizeData(microglia)
+microglia <- SCTransform(microglia, vars.to.regress = "percent.mt")
 
-# Finding variable features
-microglia <- FindVariableFeatures(microglia)
+# PCA
+microglia <- RunPCA(microglia, assay = "SCT")
 
-# Scaling the data
-microglia <- ScaleData(microglia)
-
-# Running the PCA
-microglia <- RunPCA(microglia)
+# Batch correction
+microglia <- RunHarmony(microglia, group.by.vars = "orig.ident", assay.use = "SCT")
 
 # Elbow plot
 ElbowPlot(microglia)
-
 ```
 
 Small intermission here - it looks like 10 PCs is best for the elbow plot this time.
@@ -446,6 +437,8 @@ DimPlot(microglia, reduction = "umap", label = TRUE)
 That looks much better! But there is still a rogue cluster way to the left. It's likely that this is other cells that ended up annotated as microglia or in the same cluster. Let's see their genes:
 
 ```{r}
+DefaultAssay(microglia) <- "SCT"
+microglia <- PrepSCTFindMarkers(microglia)
 cluster3.markers <- FindMarkers(microglia, ident.1 = "3")
 head(cluster3.markers, 20)
 ```
