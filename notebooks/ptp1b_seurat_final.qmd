@@ -1,6 +1,8 @@
 ---
 title: "ptp1b_seurat_final"
-format: html
+format:
+  html:
+    embed-resources: true
 editor: visual
 ---
 
