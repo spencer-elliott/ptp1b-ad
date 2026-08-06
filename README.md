@@ -40,7 +40,7 @@ For each of these steps I have a script as well as a corresponding Jupyter noteb
 
 4. Analysis of a feature-barcode matrix in R using Seurat
 - Script: ['ptp1b_seurat.R'](scripts/ptp1b_seurat.R)
-- Analysis: ['ptp1b_seurat.html'](https://spencerelliott.github.io/ptp1b-ad/notebooks/ptp1b_seurat.html)
+- Analysis: ['ptp1b_seurat.html'](https://spencer-elliott.github.io/ptp1b-ad/notebooks/ptp1b_seurat.html)
 
 5. Alignment and quantification for all four samples using CellRanger
 - Scripts: ['slurm' folder](scripts/slurm/)
@@ -48,7 +48,7 @@ For each of these steps I have a script as well as a corresponding Jupyter noteb
 
 6. 'ptp1b_seurat_final.R' - Analysis for all four samples in R using Seurat
 - Script: ['ptp1b_seurat_final.R'](scripts/ptp1b_seurat_final.R)
-- Analysis: ['ptp1b_seurat_final.html'](https://spencerelliott.github.io/ptp1b-ad/notebooks/ptp1b_seurat_final.html)
+- Analysis: ['ptp1b_seurat_final.html'](https://spencer-elliott.github.io/ptp1b-ad/notebooks/ptp1b_seurat_final.html)
 
 ## Stuff I used
 

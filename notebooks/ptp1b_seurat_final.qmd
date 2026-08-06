@@ -22,8 +22,8 @@ Running CellRanger resulted in a feature-barcode matrix for all four samples, an
 
 This will open the door to comparing expression in different cell types across the two treatment groups!
 
-Once again this analysis will heavily follow the Seurat tutorial found here: <https://satijalab.org/seurat/articles/pbmc3k_tutorial.html>\
-Also remember that for many of these steps I wrote up a more detailed explanation the first time around, in the file ptp1b_seurat.qmd.
+Once again this analysis will heavily follow the Seurat tutorial found [here](https://satijalab.org/seurat/articles/pbmc3k_tutorial.html). \
+Also remember that for many of these steps I wrote up a more detailed explanation the first time around [(link)](https://spencer-elliott.github.io/ptp1b-ad/notebooks/ptp1b_seurat.html), when I was working on just one sample.
 
 ### Creating the merged Seurat object
 
