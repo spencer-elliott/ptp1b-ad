@@ -7,10 +7,9 @@ editor: visual
 ---
 
 ```{r setup}
-# Setting the working directory for R chunks
-knitr::opts_knit$set(root.dir = "/Users/spencerelliott/ptp1b_ad/results/cellbender_output")
+library(here)
 # Setting the random seed to replicate results
-seed <- readRDS("~/ptp1b_ad/results/original_seed.rds")
+seed <- readRDS(here("results/original_seed.rds"))
 assign(".Random.seed", seed, envir = .GlobalEnv)
 # Cache results so huge analysis doesn't have to be rerun
 knitr::opts_chunk$set(cache = TRUE, cache.lazy = FALSE)
@@ -22,7 +21,7 @@ Running CellRanger resulted in a feature-barcode matrix for all four samples, an
 
 This will open the door to comparing expression in different cell types across the two treatment groups!
 
-Once again this analysis will heavily follow the Seurat tutorial found [here](https://satijalab.org/seurat/articles/pbmc3k_tutorial.html). \
+Once again this analysis will heavily follow the Seurat tutorial found [here](https://satijalab.org/seurat/articles/pbmc3k_tutorial.html).\
 Also remember that for many of these steps I wrote up a more detailed explanation the first time around [(link)](https://spencer-elliott.github.io/ptp1b-ad/notebooks/ptp1b_seurat.html), when I was working on just one sample.
 
 ### Creating the merged Seurat object
@@ -34,6 +33,7 @@ library(Seurat)
 library(Matrix)
 library(dplyr)
 library(ggplot2)
+library(here)
 ```
 
 The first step is reading in the matrix. CellBender outputs the filtered matrices in a .h5 format that can be read in with Read10X_h5. This also contains all the other needed info, like lists of barcodes and features, that I needed to bring in separately before.
@@ -41,10 +41,10 @@ The first step is reading in the matrix. CellBender outputs the filtered matrice
 Seurat has a built-in command for reading in the matrix as these three files together. This will help me skip past steps I had to to before like replacing the Ensembl IDs with gene names!
 
 ```{r}
-KO1 <- Read10X_h5("KO_SRR36691286_cellbender_filtered_seurat.h5")
-KO2 <- Read10X_h5("KO_SRR36691287_cellbender_filtered_seurat.h5")
-AD1 <- Read10X_h5("AD_SRR36691288_cellbender_filtered_seurat.h5")
-AD2 <- Read10X_h5("AD_SRR36691289_cellbender_filtered_seurat.h5")
+KO1 <- Read10X_h5(here("results/cellbender_output/KO_SRR36691286_cellbender_filtered_seurat.h5"))
+KO2 <- Read10X_h5(here("results/cellbender_output/KO_SRR36691287_cellbender_filtered_seurat.h5"))
+AD1 <- Read10X_h5(here("results/cellbender_output/AD_SRR36691288_cellbender_filtered_seurat.h5"))
+AD2 <- Read10X_h5(here("results/cellbender_output/AD_SRR36691289_cellbender_filtered_seurat.h5"))
 ```
 
 Compared to my Kallisto output, this matrix is also already filtered for empty droplets thanks to CellRanger and CellBender. I can go right ahead and create a Seurat object for each sample, then merge them together to perform analysis on all of them at once. I'll use separate project names for the two treatment groups to keep track of them after merging.

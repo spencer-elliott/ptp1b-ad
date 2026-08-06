@@ -9,10 +9,10 @@
 # Setup ----
 
 # Set the working directory to CellBender output folder
-setwd("~/ptp1b_ad/results/cellbender_output")
+setwd(here("results/cellbender_output"))
 
 # Save random seed for rerunning
-seed <- readRDS("~/ptp1b_ad/results/original_seed.rds")
+seed <- readRDS(here("results/original_seed.rds"))
 assign(".Random.seed", seed, envir = .GlobalEnv)
 
 # Load packages
@@ -21,6 +21,7 @@ library(Matrix)
 library(dplyr)
 library(ggplot2)
 library(harmony)
+library(here)
 
 
 # Creating the Seurat object ----
@@ -220,7 +221,7 @@ so <- subset(so, cell_type != "Unknown")
 DimPlot(so, reduction = "umap", label = TRUE)
 
 # Save the Seurat object
-saveRDS(so, "~/ptp1b_ad/results/seurat_objects/ptp1b_so_final.rds")
+saveRDS(so, here("results/seurat_objects/ptp1b_so_final.rds"))
 # To load the Seurat object:
 # so <- readRDS("~/ptp1b_ad/results/seurat_objects/ptp1b_so_final.rds")
 
@@ -327,7 +328,7 @@ Idents(microglia) <- "cell_type"
 DimPlot(microglia, reduction = "umap", label = TRUE)
 
 # Save the Seurat object
-saveRDS(microglia, "~/ptp1b_ad/results/seurat_objects/ptp1b_microglia_final.rds")
+saveRDS(microglia, here("results/seurat_objects/ptp1b_microglia_final.rds"))
 # To load the Seurat object: 
-# microglia <- readRDS("~/ptp1b_ad/results/seurat_objects/ptp1b_microglia_final.rds")
+# microglia <- readRDS(here("results/seurat_objects/ptp1b_microglia_final.rds"))
 
